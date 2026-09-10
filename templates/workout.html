@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Workout — FitVision AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<nav class="nav"><a class="brand" href="/dashboard"><span class="dot"></span>FitVision AI</a></nav>
+<div class="app-shell">
+  {% include "_sidebar.html" %}
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1>AI Workout</h1>
+        <p id="queueLine">Loading your session…</p>
+      </div>
+      <div class="control-row" style="margin:0;">
+        <button class="mini-btn" id="skipBtn" title="Skip to the next exercise">⏭ Skip</button>
+        <button class="mini-btn" id="finishBtn" title="End the workout now">🏁 Finish</button>
+      </div>
+    </div>
+
+    <div class="panel" id="howItWorks" style="margin-bottom:20px;">
+      <h2 style="margin-bottom:10px;">How this works</h2>
+      <p style="color:var(--text-dim); font-size:13.5px; line-height:1.7; margin:0;">
+        Press <b>Start</b> and the AI takes it from here: it recognizes the exercise you're doing,
+        counts reps automatically, scores your form, and moves you through today's full session —
+        no buttons needed mid-set. Nothing is recorded or saved as video; only your rep counts.
+      </p>
+    </div>
+
+    <div class="workout-grid">
+      <div>
+        <div class="cam-wrap">
+          <video id="video" autoplay playsinline muted></video>
+          <canvas id="overlay"></canvas>
+          <div class="cam-hud">
+            <div class="hud-chip" id="hudPoseWrap">👤 <b id="hudPose">Camera off</b></div>
+            <div class="hud-chip" id="hudMoveWrap">🏃 <b id="hudMove">–</b></div>
+            <div class="hud-chip" id="hudIdentityWrap" style="display:none;">🪪 <b id="hudIdentity">–</b></div>
+          </div>
+          <div class="confidence-chip" id="confidenceChip" style="display:none;">
+            <span id="confidenceLabel">Squat</span> detected — <b id="confidenceValue">0%</b> confidence
+          </div>
+          <div class="form-banner good" id="formBanner">Press "Start" below when you're ready</div>
+          <div class="rest-overlay" id="restOverlay">
+            <div class="t" id="restTime">60</div>
+            <div class="l">Rest — next set starting soon</div>
+          </div>
+          <div class="rest-overlay" id="celebrationOverlay">
+            <div style="font-size:52px;">🎉</div>
+            <div class="t" style="font-size:28px;" id="celebrationTitle">Workout Complete!</div>
+            <div class="l" id="celebrationSummary" style="max-width:340px; text-align:center; margin-top:10px;"></div>
+            <a href="/progress" class="btn btn-primary" style="margin-top:20px;">View progress →</a>
+          </div>
+          <div class="rest-overlay identity-overlay" id="identityMismatchOverlay">
+            <div style="font-size:40px;">🧑‍🤝‍🧑</div>
+            <div class="t" style="font-size:20px;" id="identityMismatchTitle">This doesn't look like you</div>
+            <div class="l" id="identityMismatchBody" style="max-width:360px; text-align:center; margin-top:10px;">
+              I noticed a different face in frame. If that's not right, tap "It's still me" — otherwise, please log in as yourself to keep your workout data accurate.
+            </div>
+            <div class="control-row" style="margin-top:20px; width:80%;">
+              <button class="btn btn-primary" id="identityStillMeBtn" style="flex:1;">✅ It's still me</button>
+              <button class="btn" id="identityLogoutBtn" style="flex:1;">🚪 Not me — log out</button>
+            </div>
+          </div>
+        </div>
+        <div class="control-row">
+          <button class="btn btn-primary btn-block" id="startCamBtn" style="flex:2;">▶ Start</button>
+          <button class="mini-btn on" id="voiceBtn" title="Turn the spoken coaching on or off">🔊 Voice: on</button>
+          <button class="mini-btn" id="pauseBtn" title="Pause the workout" style="display:none;">⏸ Pause</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="panel">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h2 id="exerciseTitle" style="margin:0;">Bicep Curl</h2>
+            <span class="pill" id="exerciseGroupPill"></span>
+          </div>
+          <div class="rep-big" id="repBig">0<span style="color:var(--text-faint); font-size:28px;"> / 12</span></div>
+          <div class="rep-sub" id="setSub">Set 1 of 3</div>
+          <div class="set-dots" id="setDots"></div>
+          <div class="quality-row" id="qualityRow">
+            <span class="quality-chip good">✅ <b id="goodRepsCount">0</b> good</span>
+            <span class="quality-chip warn">⚠️ <b id="partialRepsCount">0</b> partial</span>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Up next</h2>
+          <div class="queue-list" id="queueList"></div>
+        </div>
+        <div class="panel">
+          <h2>Session log</h2>
+          <div class="log-list" id="logList"><div class="log-item"><span>No sets completed yet.</span></div></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<script src="/static/js/app.js"></script>
+<script src="/static/js/pose.js"></script>
+</body>
+</html>

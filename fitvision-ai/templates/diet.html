@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diet Plan — FitVision AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<nav class="nav"><a class="brand" href="/dashboard"><span class="dot"></span>FitVision AI</a></nav>
+<div class="app-shell">
+  {% include "_sidebar.html" %}
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1>AI Diet Assistant</h1>
+        <p>Estimated from your profile using the Mifflin-St Jeor equation.</p>
+      </div>
+      <button class="btn btn-primary" id="genBtn">↻ Regenerate plan</button>
+    </div>
+
+    <div class="workout-grid">
+      <div>
+        <div class="panel">
+          <h2>Daily targets</h2>
+          <div class="stat-row" style="grid-template-columns:repeat(2,1fr);">
+            <div class="stat-box"><div class="label">BMR</div><div class="value" id="bmr">–</div></div>
+            <div class="stat-box"><div class="label">TDEE</div><div class="value" id="tdee">–</div></div>
+          </div>
+          <div class="stat-box" style="margin-top:14px;"><div class="label">Target calories / day</div><div class="value good" id="cals">–</div></div>
+          <div class="macro-grid">
+            <div class="macro-box"><div class="v" id="protein">–</div><div class="l">Protein (g)</div></div>
+            <div class="macro-box"><div class="v" id="carbs">–</div><div class="l">Carbs (g)</div></div>
+            <div class="macro-box"><div class="v" id="fat">–</div><div class="l">Fat (g)</div></div>
+          </div>
+          <p style="color:var(--text-faint); font-size:12.5px; margin-top:16px; line-height:1.6;" id="noteLine"></p>
+        </div>
+      </div>
+      <div>
+        <div class="panel">
+          <h2>Sample meal plan</h2>
+          <div id="meals"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Food substitution</h2>
+      <p style="color:var(--text-dim); font-size:13px; margin:0 0 14px;">Don't eat something in your plan? Get a quick swap.</p>
+      <div class="chat-input">
+        <input id="subInput" placeholder="e.g. eggs, chicken, dairy…">
+        <button class="btn btn-primary" id="subBtn">Find substitute</button>
+      </div>
+      <div id="subResult" style="margin-top:14px;"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Have a bigger question?</h2>
+      <p style="color:var(--text-dim); font-size:13px; margin:0 0 14px;">Ask the full AI trainer — workouts, form, nutrition, motivation, all in one place.</p>
+      <a href="/ask-ai" class="btn btn-primary">Open Ask AI →</a>
+    </div>
+  </main>
+</div>
+
+<script src="/static/js/app.js"></script>
+<script>
+async function loadDiet(){
+  const d = await api('/api/diet/generate', {method:'POST'});
+  document.getElementById('bmr').textContent = d.bmr;
+  document.getElementById('tdee').textContent = d.tdee;
+  document.getElementById('cals').textContent = d.calories + ' kcal';
+  document.getElementById('protein').textContent = d.protein_g;
+  document.getElementById('carbs').textContent = d.carbs_g;
+  document.getElementById('fat').textContent = d.fat_g;
+  document.getElementById('noteLine').textContent = d.note;
+
+  const labels = {breakfast:'Breakfast', lunch:'Lunch', pre_workout:'Pre-workout', post_workout:'Post-workout', dinner:'Dinner'};
+  const wrap = document.getElementById('meals');
+  wrap.innerHTML = Object.entries(d.meals).map(([k, items]) => `
+    <div class="meal-row">
+      <div><div class="name">${labels[k] || k}</div><div class="items">${items.join(' · ')}</div></div>
+    </div>
+  `).join('');
+}
+
+(async function(){
+  const user = await initShell('diet');
+  if (!user) return;
+  await loadDiet();
+  document.getElementById('genBtn').addEventListener('click', loadDiet);
+
+  const subInput = document.getElementById('subInput');
+  const subResult = document.getElementById('subResult');
+  async function findSub(){
+    const food = subInput.value.trim();
+    if (!food) return;
+    subResult.innerHTML = '<p style="color:var(--text-faint); font-size:13px;">Looking…</p>';
+    try {
+      const res = await api('/api/diet/substitute', {method:'POST', body: JSON.stringify({food})});
+      if (res.substitutes) {
+        subResult.innerHTML = `<p style="font-size:13.5px;">Instead of <b>${res.food}</b>, try: ${res.substitutes.join(', ')}</p>`;
+      } else {
+        subResult.innerHTML = `<p style="font-size:13.5px;">${res.note}</p>`;
+      }
+    } catch(e) {
+      subResult.innerHTML = '<p style="color:var(--bad); font-size:13px;">Something went wrong — try again.</p>';
+    }
+  }
+  document.getElementById('subBtn').addEventListener('click', findSub);
+  subInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') findSub(); });
+})();
+</script>
+</body>
+</html>

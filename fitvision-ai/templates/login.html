@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ 'Sign up' if mode == 'signup' else 'Log in' }} — FitVision AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+{% include "_nav.html" %}
+
+<div class="auth-wrap">
+  <div class="auth-column">
+    <div class="bot-scene" id="botScene">
+      <div class="bot-rig">
+        <div class="bot-glow-cone"></div>
+        <div class="bot-body">
+          <div class="bot-antenna-stick"></div>
+          <div class="bot-antenna-tip"></div>
+          <div class="bot-head">
+            <div class="bot-visor">
+              <div class="bot-eye"></div>
+              <div class="bot-eye"></div>
+            </div>
+          </div>
+          <div class="bot-collar"></div>
+          <button class="bot-power-btn" id="botPowerBtn" type="button" aria-label="Power on your AI trainer to reveal sign-in">⏻</button>
+        </div>
+      </div>
+      <p class="bot-hint">👆 tap to power on</p>
+    </div>
+
+  <div class="auth-card reveal-card" id="authCard">
+    {% if mode == 'signup' %}
+      <h1>Create your account</h1>
+      <p class="sub">Takes under a minute. One click with Google, or fill in a few quick steps.</p>
+    {% else %}
+      <h1>Welcome back</h1>
+      <p class="sub">Your trainer remembers exactly where you left off.</p>
+    {% endif %}
+
+    <div class="error-msg" id="errBox"></div>
+
+    {% if mode == 'signup' %}
+    <div class="wizard-dots">
+      <div class="wizard-dot active" data-dot="1"></div>
+      <div class="wizard-dot" data-dot="2"></div>
+      <div class="wizard-dot" data-dot="3"></div>
+      <div class="wizard-dot" data-dot="4"></div>
+      <div class="wizard-dot" data-dot="5"></div>
+    </div>
+    <form id="signupForm">
+      <div class="wizard-step active" data-step="1">
+        <h2>1. Your login</h2>
+        <p class="step-sub">Just the basics to create your account.</p>
+        <div class="field"><label>Full name</label><input name="name" required></div>
+        <div class="field"><label>Email</label><input type="email" name="email" required></div>
+        <div class="field pw-field"><label>Password</label><input type="password" name="password" id="signupPw" required minlength="6">
+          <button type="button" class="pw-toggle" data-toggle="signupPw">Show</button>
+        </div>
+        <div class="wizard-nav"><button type="button" class="btn btn-primary" data-next="2">Continue →</button></div>
+      </div>
+
+      <div class="wizard-step" data-step="2">
+        <h2>2. About you</h2>
+        <p class="step-sub">This lets your AI trainer count reps and calculate your plan accurately.</p>
+        <div class="form-row">
+          <div class="field"><label>Age</label><input type="number" name="age" min="10" max="90" required></div>
+          <div class="field"><label>Gender</label>
+            <select name="gender" required><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label>Height (cm)</label><input type="number" name="height_cm" required></div>
+          <div class="field"><label>Weight (kg)</label><input type="number" name="weight_kg" required></div>
+        </div>
+        <div class="wizard-nav">
+          <button type="button" class="btn" data-back="1">← Back</button>
+          <button type="button" class="btn btn-primary" data-next="3">Continue →</button>
+        </div>
+      </div>
+
+      <div class="wizard-step" data-step="3">
+        <h2>3. Your fitness goal</h2>
+        <p class="step-sub">Pick what fits best — you can change this anytime.</p>
+        <input type="hidden" name="goal" required>
+        <div class="choice-grid" data-choice-group="goal">
+          <button type="button" class="choice-card" data-value="muscle_gain"><span class="ic">💪</span>Muscle Gain</button>
+          <button type="button" class="choice-card" data-value="fat_loss"><span class="ic">🔥</span>Fat Loss</button>
+          <button type="button" class="choice-card" data-value="strength"><span class="ic">🏋️</span>Strength</button>
+          <button type="button" class="choice-card" data-value="general_fitness"><span class="ic">❤️</span>General Fitness</button>
+          <button type="button" class="choice-card" data-value="endurance"><span class="ic">🏃</span>Endurance</button>
+        </div>
+        <div class="wizard-nav">
+          <button type="button" class="btn" data-back="2">← Back</button>
+          <button type="button" class="btn btn-primary" data-next="4">Continue →</button>
+        </div>
+      </div>
+
+      <div class="wizard-step" data-step="4">
+        <h2>4. Your equipment</h2>
+        <p class="step-sub">What do you have access to? We'll only plan exercises you can actually do.</p>
+        <input type="hidden" name="equipment" required>
+        <div class="choice-grid" data-choice-group="equipment">
+          <button type="button" class="choice-card" data-value="gym"><span class="ic">🏢</span>Gym equipment</button>
+          <button type="button" class="choice-card" data-value="home"><span class="ic">🏠</span>Home workout</button>
+          <button type="button" class="choice-card" data-value="dumbbells"><span class="ic">🏋️‍♀️</span>Dumbbells only</button>
+          <button type="button" class="choice-card" data-value="bodyweight"><span class="ic">🤸</span>Bodyweight</button>
+        </div>
+        <div class="wizard-nav">
+          <button type="button" class="btn" data-back="3">← Back</button>
+          <button type="button" class="btn btn-primary" data-next="5">Continue →</button>
+        </div>
+      </div>
+
+      <div class="wizard-step" data-step="5">
+        <h2>5. Workout time & experience</h2>
+        <p class="step-sub">How long do your sessions usually run?</p>
+        <input type="hidden" name="workout_time_pref" required>
+        <div class="choice-grid four" data-choice-group="workout_time_pref">
+          <button type="button" class="choice-card" data-value="20"><span class="ic">⏱️</span>20 min</button>
+          <button type="button" class="choice-card" data-value="30"><span class="ic">⏱️</span>30 min</button>
+          <button type="button" class="choice-card" data-value="45"><span class="ic">⏱️</span>45 min</button>
+          <button type="button" class="choice-card" data-value="60"><span class="ic">⏱️</span>60 min</button>
+        </div>
+        <div class="form-row" style="margin-top:16px;">
+          <div class="field"><label>Experience</label>
+            <select name="experience"><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option></select>
+          </div>
+          <div class="field"><label>Activity level</label>
+            <select name="activity_level">
+              <option value="sedentary">Mostly sitting</option>
+              <option value="light">Lightly active</option>
+              <option value="moderate" selected>Moderately active</option>
+              <option value="high">Very active</option>
+              <option value="athlete">Athlete</option>
+            </select>
+          </div>
+        </div>
+        <div class="field"><label>I'm signing up as a</label>
+          <select name="role"><option value="client">Client (I want to train)</option><option value="trainer">Trainer (I coach others)</option></select>
+        </div>
+        <div class="wizard-nav">
+          <button type="button" class="btn" data-back="4">← Back</button>
+          <button class="btn btn-primary" type="submit">Create account →</button>
+        </div>
+      </div>
+    </form>
+    <div class="divider">or continue with</div>
+    <div class="google-btn-wrap" id="googleBtn"></div>
+    {% if not GOOGLE_CLIENT_ID %}
+      <p class="google-note">(Google sign-in needs a GOOGLE_CLIENT_ID in .env — see the README)</p>
+    {% endif %}
+    <div class="auth-switch">Already have an account? <a href="/login">Log in</a></div>
+
+    {% else %}
+    <form id="loginForm">
+      <div class="field"><label>Email</label><input type="email" name="email" required></div>
+      <div class="field pw-field"><label>Password</label><input type="password" name="password" id="loginPw" required>
+        <button type="button" class="pw-toggle" data-toggle="loginPw">Show</button>
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">Log in →</button>
+    </form>
+    <div class="divider">or continue with</div>
+    <div class="google-btn-wrap" id="googleBtn"></div>
+    {% if not GOOGLE_CLIENT_ID %}
+      <p class="google-note">(Google sign-in needs a GOOGLE_CLIENT_ID in .env — see the README)</p>
+    {% endif %}
+    <div class="auth-switch">New here? <a href="/signup">Create a profile</a></div>
+    {% endif %}
+  </div>
+  </div>
+</div>
+
+<script>
+// ---------- Robot power-on reveal ----------
+const botScene = document.getElementById('botScene');
+const botPowerBtn = document.getElementById('botPowerBtn');
+const authCard = document.getElementById('authCard');
+botPowerBtn.addEventListener('click', () => {
+  const isLit = botScene.classList.toggle('lit');
+  authCard.classList.toggle('lit-in', isLit);
+});
+
+// ---------- Password show/hide ----------
+document.querySelectorAll('.pw-toggle').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const input = document.getElementById(btn.dataset.toggle);
+    const showing = input.type === 'text';
+    input.type = showing ? 'password' : 'text';
+    btn.textContent = showing ? 'Show' : 'Hide';
+  });
+});
+
+function showErr(msg){ const b=document.getElementById('errBox'); b.textContent=msg; b.style.display='block'; window.scrollTo(0,0); }
+
+// ---------- Google Sign-In ----------
+async function handleGoogleCredential(response){
+  try{
+    const res = await fetch('/api/auth/google', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ credential: response.credential }),
+    });
+    const data = await res.json();
+    if (!res.ok) return showErr(data.error || 'Google sign-in failed.');
+    window.location.href = data.profile_complete ? '/dashboard' : '/complete-profile';
+  } catch(e){ showErr('Could not reach the server. Is it running?'); }
+}
+window.onload = function(){
+  const clientId = "{{ GOOGLE_CLIENT_ID }}";
+  if (clientId && window.google) {
+    google.accounts.id.initialize({ client_id: clientId, callback: handleGoogleCredential });
+    google.accounts.id.renderButton(document.getElementById('googleBtn'), { theme: 'filled_black', size: 'large', shape: 'pill', width: 320 });
+  }
+};
+
+// ---------- Manual signup wizard ----------
+const signupForm = document.getElementById('signupForm');
+if (signupForm) {
+  const steps = [...signupForm.querySelectorAll('.wizard-step')];
+  const dots = [...document.querySelectorAll('.wizard-dot')];
+  function goTo(n){
+    steps.forEach(s => s.classList.toggle('active', s.dataset.step === String(n)));
+    dots.forEach(d => d.classList.toggle('active', d.dataset.dot === String(n)));
+  }
+  // choice-card groups (goal / equipment / workout_time_pref)
+  signupForm.querySelectorAll('[data-choice-group]').forEach(group => {
+    const hidden = group.parentElement.querySelector(`input[name="${group.dataset.choiceGroup}"]`);
+    group.querySelectorAll('.choice-card').forEach(card => {
+      card.addEventListener('click', () => {
+        group.querySelectorAll('.choice-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        hidden.value = card.dataset.value;
+      });
+    });
+  });
+  signupForm.querySelectorAll('[data-next]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const current = btn.closest('.wizard-step');
+      const inputs = current.querySelectorAll('input, select');
+      for (const el of inputs) {
+        if (el.type === 'hidden' && !el.value) { showErr('Please pick one of the options above.'); return; }
+        if (el.type !== 'hidden' && !el.checkValidity()) { el.reportValidity(); return; }
+      }
+      document.getElementById('errBox').style.display = 'none';
+      goTo(btn.dataset.next);
+    });
+  });
+  signupForm.querySelectorAll('[data-back]').forEach(btn => {
+    btn.addEventListener('click', () => goTo(btn.dataset.back));
+  });
+  signupForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = Object.fromEntries(new FormData(signupForm).entries());
+    const res = await fetch('/api/signup', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(fd)});
+    const data = await res.json();
+    if (!res.ok) return showErr(data.error || 'Something went wrong');
+    window.location.href = '/dashboard';
+  });
+}
+
+// ---------- Manual login ----------
+const loginForm = document.getElementById('loginForm');
+if (loginForm) {
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = Object.fromEntries(new FormData(loginForm).entries());
+    const res = await fetch('/api/login', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(fd)});
+    const data = await res.json();
+    if (!res.ok) return showErr(data.error || 'Something went wrong');
+    window.location.href = '/dashboard';
+  });
+}
+</script>
+</body>
+</html>

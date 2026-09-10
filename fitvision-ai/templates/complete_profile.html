@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Finish your profile — FitVision AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<nav class="nav"><a class="brand" href="/"><span class="dot"></span>FitVision AI</a></nav>
+
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h1>One last step</h1>
+    <p class="sub">Just a few details so your AI trainer can build a plan that fits you.</p>
+    <div class="error-msg" id="errBox"></div>
+    <form id="profileForm">
+      <div class="form-row">
+        <div class="field"><label>Age</label><input type="number" name="age" min="10" max="90" required></div>
+        <div class="field"><label>Gender</label>
+          <select name="gender" required><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Height (cm)</label><input type="number" name="height_cm" required></div>
+        <div class="field"><label>Weight (kg)</label><input type="number" name="weight_kg" required></div>
+      </div>
+      <div class="field"><label>Main goal</label>
+        <select name="goal" required>
+          <option value="muscle_gain">Build muscle</option>
+          <option value="fat_loss">Lose fat</option>
+          <option value="strength">Strength</option>
+          <option value="general_fitness">Stay generally fit</option>
+          <option value="endurance">Endurance</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Equipment</label>
+          <select name="equipment" required>
+            <option value="gym">Gym equipment available</option>
+            <option value="home">Home workout</option>
+            <option value="dumbbells">Dumbbells only</option>
+            <option value="bodyweight" selected>Bodyweight</option>
+          </select>
+        </div>
+        <div class="field"><label>Session length</label>
+          <select name="workout_time_pref">
+            <option value="20">20 min</option>
+            <option value="30" selected>30 min</option>
+            <option value="45">45 min</option>
+            <option value="60">60 min</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Experience</label>
+          <select name="experience"><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option></select>
+        </div>
+        <div class="field"><label>Activity level</label>
+          <select name="activity_level">
+            <option value="sedentary">Mostly sitting</option>
+            <option value="light">Lightly active</option>
+            <option value="moderate" selected>Moderately active</option>
+            <option value="high">Very active</option>
+            <option value="athlete">Athlete</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">Build my plan →</button>
+    </form>
+  </div>
+</div>
+
+<script>
+function showErr(msg){ const b=document.getElementById('errBox'); b.textContent=msg; b.style.display='block'; }
+document.getElementById('profileForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = Object.fromEntries(new FormData(e.target).entries());
+  const res = await fetch('/api/complete-profile', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(fd)});
+  const data = await res.json();
+  if (!res.ok) return showErr(data.error || 'Something went wrong');
+  window.location.href = '/dashboard';
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trainer View — FitVision AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<nav class="nav"><a class="brand" href="/dashboard"><span class="dot"></span>FitVision AI</a></nav>
+<div class="app-shell">
+  {% include "_sidebar.html" %}
+  <main class="main">
+    <div class="page-head">
+      <div><h1>Trainer view</h1><p>The AI assists — you still call the shots on every client's plan.</p></div>
+    </div>
+    <div class="panel">
+      <h2>Clients</h2>
+      <table class="plan-table">
+        <thead><tr><th>Name</th><th>Goal</th><th>Sets</th><th>Avg. form</th><th>Streak</th><th>Consistency</th><th></th></tr></thead>
+        <tbody id="clientBody"><tr><td colspan="7">Loading…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="panel" id="summaryPanel" style="display:none;">
+      <h2>🤖 AI client summary</h2>
+      <p id="summaryText" style="font-size:14px; color:var(--text-dim); line-height:1.7;"></p>
+      <div id="attentionFlag"></div>
+    </div>
+  </main>
+</div>
+
+<script src="/static/js/app.js"></script>
+<script>
+(async function(){
+  const user = await initShell('trainer');
+  if (!user) return;
+  if (user.role !== 'trainer') {
+    document.querySelector('.main').innerHTML = `
+      <div class="panel"><h2>Trainer access only</h2>
+      <p style="color:var(--text-dim);">This view is for accounts registered with the Trainer role.
+      Sign up again and choose "Trainer" to explore it.</p></div>`;
+    return;
+  }
+  const clients = await api('/api/trainer/clients');
+  const body = document.getElementById('clientBody');
+  body.innerHTML = clients.length ? clients.map(c => `
+    <tr>
+      <td>${c.name}</td>
+      <td>${fmtGoal(c.goal)}</td>
+      <td>${c.total_sets}</td>
+      <td>${c.avg_form !== null ? c.avg_form + '%' : '—'}</td>
+      <td>${c.streak}d</td>
+      <td>${c.consistency}%</td>
+      <td><button class="mini-btn" data-client="${c.id}" style="padding:6px 12px;">AI summary</button></td>
+    </tr>
+  `).join('') : '<tr><td colspan="7">No client accounts yet.</td></tr>';
+
+  document.querySelectorAll('[data-client]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const res = await api(`/api/trainer/client-summary/${btn.dataset.client}`);
+      document.getElementById('summaryPanel').style.display = 'block';
+      document.getElementById('summaryText').textContent = res.summary;
+      document.getElementById('attentionFlag').innerHTML = res.needs_attention
+        ? `<span class="pill" style="background:rgba(255,107,107,.15); color:#ff9d9d;">⚠️ May need a check-in</span>`
+        : `<span class="pill" style="background:rgba(74,222,128,.15); color:var(--good);">✅ On track</span>`;
+      document.getElementById('summaryPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  });
+})();
+</script>
+</body>
+</html>

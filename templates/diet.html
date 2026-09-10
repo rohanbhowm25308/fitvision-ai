@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diet Plan — FitVision AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<nav class="nav"><a class="brand" href="/dashboard"><span class="dot"></span>FitVision AI</a></nav>
+<div class="app-shell">
+  {% include "_sidebar.html" %}
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1>AI Diet Assistant</h1>
+        <p>Personalized by your age, sex, goal, and body stats — not a generic template.</p>
+      </div>
+    </div>
+
+    <div class="panel" id="personalizedChip">
+      <p style="margin:0; font-size:13px; color:var(--text-dim);">Personalized for:
+        <span class="profile-chip" id="chipAgeBand">–</span>
+        <span class="profile-chip" id="chipGender">–</span>
+        <span class="profile-chip" id="chipGoal">–</span>
+      </p>
+    </div>
+
+    <div class="panel" id="cautionPanel" style="display:none; border-color:rgba(255,180,84,.4);">
+      <p style="margin:0; font-size:13.5px; color:var(--warn); line-height:1.6;">⚠️ <span id="cautionText"></span></p>
+    </div>
+
+    <div class="panel">
+      <h2>Your preferences</h2>
+      <div class="form-row">
+        <div class="field">
+          <label>Diet goal</label>
+          <div class="choice-grid" id="dietGoalChoice">
+            <button type="button" class="choice-card" data-value="loss"><span class="ic">🔥</span>Weight Loss</button>
+            <button type="button" class="choice-card" data-value="gain"><span class="ic">💪</span>Weight Gain</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Diet preference</label>
+          <div class="choice-grid" id="dietPrefChoice">
+            <button type="button" class="choice-card" data-value="non_veg"><span class="ic">🍗</span>Non-Vegetarian</button>
+            <button type="button" class="choice-card" data-value="veg"><span class="ic">🥦</span>Vegetarian</button>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Allergies or foods to avoid (optional, comma-separated)</label>
+        <input type="text" id="allergiesInput" placeholder="e.g. nuts, dairy, shellfish">
+      </div>
+      <button class="btn btn-primary" id="genBtn">↻ Update & regenerate plan</button>
+    </div>
+
+    <div class="workout-grid">
+      <div>
+        <div class="panel">
+          <h2>Daily targets</h2>
+          <div class="stat-row" style="grid-template-columns:repeat(2,1fr);">
+            <div class="stat-box"><div class="label">BMR</div><div class="value" id="bmr">–</div></div>
+            <div class="stat-box"><div class="label">TDEE</div><div class="value" id="tdee">–</div></div>
+          </div>
+          <div class="stat-box" style="margin-top:14px;"><div class="label">Target calories / day</div><div class="value good" id="cals">–</div></div>
+          <div class="macro-grid">
+            <div class="macro-box"><div class="v" id="protein">–</div><div class="l">Protein (g)</div></div>
+            <div class="macro-box"><div class="v" id="carbs">–</div><div class="l">Carbs (g)</div></div>
+            <div class="macro-box"><div class="v" id="fat">–</div><div class="l">Fat (g)</div></div>
+          </div>
+          <p style="color:var(--text-faint); font-size:12.5px; margin-top:16px; line-height:1.6;" id="noteLine"></p>
+        </div>
+      </div>
+      <div>
+        <div class="panel">
+          <h2>Your meal plan</h2>
+          <div id="meals"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Food substitution</h2>
+      <p style="color:var(--text-dim); font-size:13px; margin:0 0 14px;">Don't eat something in your plan? Get a quick swap.</p>
+      <div class="chat-input">
+        <input id="subInput" placeholder="e.g. eggs, chicken, dairy…">
+        <button class="btn btn-primary" id="subBtn">Find substitute</button>
+      </div>
+      <div id="subResult" style="margin-top:14px;"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Have a bigger question?</h2>
+      <p style="color:var(--text-dim); font-size:13px; margin:0 0 14px;">Ask the full AI trainer — workouts, form, nutrition, motivation, all in one place.</p>
+      <a href="/ask-ai" class="btn btn-primary">Open Ask AI →</a>
+    </div>
+  </main>
+</div>
+
+<script src="/static/js/app.js"></script>
+<script>
+const GOAL_LABEL = { loss: 'Weight Loss', gain: 'Weight Gain', maintain: 'Weight Management' };
+let selectedDietGoal = null;
+let selectedDietPref = 'non_veg';
+let sixtyFivePlus = false;
+
+function selectChoice(groupId, value){
+  document.querySelectorAll(`#${groupId} .choice-card`).forEach(c => {
+    c.classList.toggle('selected', c.dataset.value === value);
+  });
+}
+
+async function loadDiet(){
+  const body = {
+    diet_preference: selectedDietPref,
+    allergies: document.getElementById('allergiesInput').value.trim(),
+  };
+  if (selectedDietGoal) body.diet_goal = selectedDietGoal;
+
+  const d = await api('/api/diet/generate', {method:'POST', body: JSON.stringify(body)});
+
+  document.getElementById('chipAgeBand').textContent = `Age ${d.age_band}`;
+  document.getElementById('chipGender').textContent = d.gender_bucket === 'male' ? 'Male' : 'Female';
+  document.getElementById('chipGoal').textContent = GOAL_LABEL[d.diet_goal];
+
+  sixtyFivePlus = d.age_band === '66+';
+  const goalChoice = document.getElementById('dietGoalChoice');
+  if (sixtyFivePlus) {
+    goalChoice.innerHTML = `<button type="button" class="choice-card selected" disabled style="opacity:.7; cursor:default;"><span class="ic">🌿</span>Weight Management</button>`;
+  } else {
+    selectChoice('dietGoalChoice', d.diet_goal);
+  }
+  selectChoice('dietPrefChoice', d.diet_preference);
+  selectedDietPref = d.diet_preference;
+  selectedDietGoal = d.diet_goal === 'maintain' ? null : d.diet_goal;
+  document.getElementById('allergiesInput').value = d.allergies || '';
+
+  const cautionPanel = document.getElementById('cautionPanel');
+  if (d.caution) {
+    cautionPanel.style.display = 'block';
+    document.getElementById('cautionText').textContent = d.caution;
+  } else {
+    cautionPanel.style.display = 'none';
+  }
+
+  document.getElementById('bmr').textContent = d.bmr;
+  document.getElementById('tdee').textContent = d.tdee;
+  document.getElementById('cals').textContent = d.calories + ' kcal';
+  document.getElementById('protein').textContent = d.protein_g;
+  document.getElementById('carbs').textContent = d.carbs_g;
+  document.getElementById('fat').textContent = d.fat_g;
+  document.getElementById('noteLine').textContent = d.note;
+
+  const wrap = document.getElementById('meals');
+  wrap.innerHTML = d.meals.map(m => `
+    <div class="meal-row">
+      <div><div class="name">${m.label}</div><div class="items">${m.text}</div></div>
+    </div>
+  `).join('');
+}
+
+(async function(){
+  const user = await initShell('diet');
+  if (!user) return;
+
+  selectedDietPref = user.diet_preference || 'non_veg';
+  document.getElementById('allergiesInput').value = user.allergies || '';
+
+  document.querySelectorAll('#dietGoalChoice .choice-card').forEach(btn => {
+    btn.addEventListener('click', () => { selectedDietGoal = btn.dataset.value; selectChoice('dietGoalChoice', btn.dataset.value); });
+  });
+  document.querySelectorAll('#dietPrefChoice .choice-card').forEach(btn => {
+    btn.addEventListener('click', () => { selectedDietPref = btn.dataset.value; selectChoice('dietPrefChoice', btn.dataset.value); });
+  });
+
+  await loadDiet();
+  document.getElementById('genBtn').addEventListener('click', loadDiet);
+
+  const subInput = document.getElementById('subInput');
+  const subResult = document.getElementById('subResult');
+  async function findSub(){
+    const food = subInput.value.trim();
+    if (!food) return;
+    subResult.innerHTML = '<p style="color:var(--text-faint); font-size:13px;">Looking…</p>';
+    try {
+      const res = await api('/api/diet/substitute', {method:'POST', body: JSON.stringify({food})});
+      if (res.substitutes) {
+        subResult.innerHTML = `<p style="font-size:13.5px;">Instead of <b>${res.food}</b>, try: ${res.substitutes.join(', ')}</p>`;
+      } else {
+        subResult.innerHTML = `<p style="font-size:13.5px;">${res.note}</p>`;
+      }
+    } catch(e) {
+      subResult.innerHTML = '<p style="color:var(--bad); font-size:13px;">Something went wrong — try again.</p>';
+    }
+  }
+  document.getElementById('subBtn').addEventListener('click', findSub);
+  subInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') findSub(); });
+})();
+</script>
+</body>
+</html>

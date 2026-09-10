@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard — FitVision AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<nav class="nav"><a class="brand" href="/dashboard"><span class="dot"></span>FitVision AI</a></nav>
+<div class="app-shell">
+  {% include "_sidebar.html" %}
+  <main class="main">
+    <div class="panel brief-panel" id="briefPanel">
+      <div class="brief-text">
+        <p class="eyebrow" style="margin-bottom:8px;">🤖 Your AI trainer</p>
+        <h1 id="greet">Welcome back</h1>
+        <p id="briefLine">Loading your briefing…</p>
+      </div>
+      <div class="fitness-score-badge">
+        <div class="fs-ring" id="fsRing">
+          <span id="fsValue">–</span>
+        </div>
+        <div class="fs-label">Fitness Score</div>
+      </div>
+    </div>
+
+    <div class="quick-actions">
+      <a href="/dashboard" class="quick-btn active"><span class="ic">👤</span>Profile</a>
+      <a href="/workout" class="quick-btn"><span class="ic">🏋️</span>Start Workout</a>
+      <a href="/ask-ai" class="quick-btn"><span class="ic">🤖</span>Ask AI</a>
+      <a href="/progress" class="quick-btn"><span class="ic">📊</span>My Progress</a>
+      <a href="/achievements" class="quick-btn"><span class="ic">🏆</span>My Achievements</a>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box"><div class="label">Level</div><div class="value" id="statLevel">–</div></div>
+      <div class="stat-box"><div class="label">XP</div><div class="value" id="statXp">–</div></div>
+      <div class="stat-box"><div class="label">Streak</div><div class="value warn" id="statStreak">–</div></div>
+      <div class="stat-box"><div class="label">Consistency</div><div class="value good" id="statConsistency">–</div></div>
+    </div>
+
+    <div class="panel">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h2 style="margin:0;">Your profile</h2>
+        <span style="font-size:12.5px; color:var(--text-faint);" id="goalLine"></span>
+      </div>
+      <div class="profile-chip-row" id="profileChips"></div>
+    </div>
+
+    <div class="panel">
+      <h2>This week's plan</h2>
+      <table class="plan-table">
+        <thead><tr><th>Day</th><th>Focus</th><th>Exercises</th><th></th></tr></thead>
+        <tbody id="planBody"><tr><td colspan="4">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="/static/js/app.js"></script>
+<script>
+(async function(){
+  const user = await initShell('dashboard');
+  if (!user) return;
+
+  const brief = await api('/api/dashboard-brief');
+  document.getElementById('greet').textContent = `Hi, ${user.name.split(' ')[0]} 👋`;
+  document.getElementById('briefLine').textContent = brief.briefing;
+  document.getElementById('fsValue').textContent = brief.fitness_score;
+  document.getElementById('fsRing').style.setProperty('--score', brief.fitness_score);
+  document.getElementById('statLevel').textContent = brief.level;
+  document.getElementById('statXp').textContent = brief.xp + (brief.next_level_xp ? ` / ${brief.next_level_xp}` : '');
+  document.getElementById('statStreak').textContent = brief.streak + (brief.streak === 1 ? ' day' : ' days');
+  document.getElementById('statConsistency').textContent = brief.consistency + '%';
+
+  document.getElementById('goalLine').textContent = `${user.experience || 'beginner'} level`;
+  document.getElementById('profileChips').innerHTML = `
+    <span class="profile-chip">🎯 ${fmtGoal(user.goal)}</span>
+    <span class="profile-chip">🏋️ ${fmtEquipment(user.equipment)}</span>
+    <span class="profile-chip">⏱️ ${user.workout_time_pref || 30} min sessions</span>
+    <span class="profile-chip">📏 ${user.height_cm} cm · ${user.weight_kg} kg</span>
+    <span class="profile-chip">🎂 ${user.age} yrs</span>
+  `;
+
+  const plan = await api('/api/workout-plan');
+  const body = document.getElementById('planBody');
+  body.innerHTML = plan.map(day => `
+    <tr>
+      <td>Day ${day.day_index + 1}</td>
+      <td><span class="pill ${day.exercises.length ? pillClass(day.exercises[0].exercise) : ''}">${day.title}</span></td>
+      <td>${day.exercises.length ? day.exercises.map(e => `${e.exercise} (${e.sets}×${e.reps})`).join(', ') : '—'}</td>
+      <td>${day.exercises.length ? `<a href="/workout" class="mini-btn" style="display:inline-block;padding:6px 12px;">Train</a>` : ''}</td>
+    </tr>
+  `).join('');
+})();
+</script>
+</body>
+</html>

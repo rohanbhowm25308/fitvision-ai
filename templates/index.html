@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FitVision AI — Your Virtual Gym Trainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+{% include "_nav.html" %}
+
+<header class="hero">
+  <div class="particle-field" id="particleField"></div>
+  <div class="container hero-grid">
+    <div>
+      <div class="eyebrow">● Live pose-detection engine</div>
+      <h1>The trainer that<br>never leaves <span>the gym.</span></h1>
+      <p class="lede">FitVision AI watches your form through the webcam, counts every rep,
+        corrects your posture in real time, and builds your workout and diet plan — the
+        way a real coach would, available at 2am or on a rest-day whim.</p>
+      <div class="hero-actions">
+        <a href="/signup" class="btn btn-primary">Start training free →</a>
+        <a href="#how" class="btn">See how it works</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat"><b>25+</b><span>Exercises tracked</span></div>
+        <div class="stat"><b>17</b><span>Joint angles analyzed</span></div>
+        <div class="stat"><b>0ms</b><span>Judgement, ever</span></div>
+      </div>
+    </div>
+
+    <div class="holo-wrap">
+      <div class="holo-ring"></div>
+      <div class="holo-ring r2"></div>
+      <div class="holo-chip c1">◎ Pose: locked</div>
+      <div class="holo-chip c2">Form 92%</div>
+      <div class="holo-chip c3">Rep 8 / 12</div>
+      <div class="holo-chip c4">2 trainees tracked</div>
+      <svg class="holo-figure" viewBox="0 0 460 380" xmlns="http://www.w3.org/2000/svg">
+        <!-- Male figure -->
+        <g class="g-male">
+          <path class="body-fill" d="M83,74 C77,64 92,58 120,58 C148,58 163,64 157,74 L150,148 C138,158 102,158 90,148 Z"/>
+          <line class="limb" x1="120" y1="57" x2="120" y2="66"/>
+          <line class="limb" x1="86" y1="76" x2="62" y2="130"/>
+          <line class="limb" x1="62" y1="130" x2="72" y2="182"/>
+          <line class="limb" x1="154" y1="76" x2="178" y2="130"/>
+          <line class="limb" x1="178" y1="130" x2="168" y2="182"/>
+          <line class="limb" x1="96" y1="156" x2="90" y2="238"/>
+          <line class="limb" x1="90" y1="238" x2="84" y2="318"/>
+          <line class="limb" x1="144" y1="156" x2="150" y2="238"/>
+          <line class="limb" x1="150" y1="238" x2="156" y2="318"/>
+          <circle class="head" cx="120" cy="36" r="21"/>
+          <circle class="joint" cx="86" cy="76" r="5"/><circle class="joint" cx="154" cy="76" r="5"/>
+          <circle class="joint" cx="62" cy="130" r="5"/><circle class="joint" cx="178" cy="130" r="5"/>
+          <circle class="joint" cx="72" cy="182" r="4"/><circle class="joint" cx="168" cy="182" r="4"/>
+          <circle class="joint" cx="96" cy="152" r="5"/><circle class="joint" cx="144" cy="152" r="5"/>
+          <circle class="joint" cx="90" cy="238" r="5"/><circle class="joint" cx="150" cy="238" r="5"/>
+          <circle class="joint" cx="84" cy="318" r="4"/><circle class="joint" cx="156" cy="318" r="4"/>
+        </g>
+        <!-- Female figure -->
+        <g class="g-female">
+          <path class="hair" d="M345,26 C368,34 370,62 352,76 C360,54 350,36 345,26 Z"/>
+          <path class="body-fill" d="M303,72 C299,63 313,58 330,58 C347,58 361,63 357,72 L351,108 C360,118 360,142 346,152 C336,159 324,159 314,152 C300,142 300,118 309,108 Z"/>
+          <line class="limb" x1="330" y1="58" x2="330" y2="66"/>
+          <line class="limb" x1="303" y1="74" x2="283" y2="124"/>
+          <line class="limb" x1="283" y1="124" x2="291" y2="172"/>
+          <line class="limb" x1="357" y1="74" x2="377" y2="124"/>
+          <line class="limb" x1="377" y1="124" x2="369" y2="172"/>
+          <line class="limb" x1="316" y1="158" x2="312" y2="238"/>
+          <line class="limb" x1="312" y1="238" x2="308" y2="316"/>
+          <line class="limb" x1="344" y1="158" x2="348" y2="238"/>
+          <line class="limb" x1="348" y1="238" x2="352" y2="316"/>
+          <circle class="head" cx="330" cy="40" r="18"/>
+          <circle class="joint" cx="303" cy="74" r="4.5"/><circle class="joint" cx="357" cy="74" r="4.5"/>
+          <circle class="joint" cx="283" cy="124" r="4.5"/><circle class="joint" cx="377" cy="124" r="4.5"/>
+          <circle class="joint" cx="291" cy="172" r="3.5"/><circle class="joint" cx="369" cy="172" r="3.5"/>
+          <circle class="joint" cx="314" cy="154" r="4.5"/><circle class="joint" cx="346" cy="154" r="4.5"/>
+          <circle class="joint" cx="312" cy="238" r="4.5"/><circle class="joint" cx="348" cy="238" r="4.5"/>
+          <circle class="joint" cx="308" cy="316" r="3.5"/><circle class="joint" cx="352" cy="316" r="3.5"/>
+        </g>
+      </svg>
+      <div class="holo-scan"></div>
+    </div>
+  </div>
+</header>
+
+<section class="section" id="features">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">Capabilities</div>
+      <h2>Everything a trainer does, running in your browser</h2>
+      <p>Built on pose estimation, a movement state-machine, and rule-based sports-science logic — not guesswork.</p>
+    </div>
+    <div class="grid-cards">
+      <div class="card"><div class="icon">🦴</div><h3>Real-time pose detection</h3><p>Tracks 17 body landmarks through your webcam to understand exactly what exercise you're doing and how you're moving.</p></div>
+      <div class="card"><div class="icon">🔢</div><h3>Smart rep counting</h3><p>A movement state-machine (down → up → top → down) counts clean reps and ignores twitches, so the count is always trustworthy.</p></div>
+      <div class="card"><div class="icon">⚠️</div><h3>Form & safety feedback</h3><p>Flags knee cave, shallow depth, or a rounding back live — with the honest caveat that it's guidance, not a medical guarantee.</p></div>
+      <div class="card"><div class="icon">🔊</div><h3>AI voice coach</h3><p>Hears your rep count out loud, tells you to slow down or go deeper, and counts down your rest timer between sets.</p></div>
+      <div class="card"><div class="icon">🍎</div><h3>Diet & macro planning</h3><p>Calculates your BMR, TDEE, and protein/carb/fat targets, then builds a sample meal plan around your goal.</p></div>
+      <div class="card"><div class="icon">👨‍🏫</div><h3>Trainer dashboard</h3><p>Human trainers see every client's AI-scored sets and form trends, so the AI assists rather than replaces them.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="how">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">Session flow</div>
+      <h2>How a workout actually runs</h2>
+    </div>
+    <div class="flow">
+      <div class="flow-step"><div class="n">1</div><h4>Pick today's plan</h4><p>Your AI-generated split tells you the exercises, sets, and reps for the day.</p></div>
+      <div class="flow-step"><div class="n">2</div><h4>Step in front of the camera</h4><p>Pose detection locks on, identifies the exercise, and starts the rep counter.</p></div>
+      <div class="flow-step"><div class="n">3</div><h4>Get coached live</h4><p>Reps, form score, and voice cues update every rep — rest timer runs automatically between sets.</p></div>
+      <div class="flow-step"><div class="n">4</div><h4>Review & progress</h4><p>Every set is logged, so your dashboard shows real strength and consistency trends over time.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="cta-panel">
+      <h2>Your next set is one webcam away.</h2>
+      <p>No equipment to buy, no app to install — it runs in the browser you're using right now.</p>
+      <a href="/signup" class="btn btn-primary">Create your free profile →</a>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">FitVision AI — a computer-vision training assistant. Not a substitute for a certified trainer or medical advice.</footer>
+
+<script>
+(function generateParticles(){
+  const field = document.getElementById('particleField');
+  if (!field) return;
+  const count = 55;
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = 1.5 + Math.random() * 3;
+    const isViolet = Math.random() > 0.55;
+    const color = isViolet ? '139,107,255' : '53,230,255';
+    const duration = 12 + Math.random() * 14;
+    const delay = -Math.random() * duration;
+    const drift = (Math.random() * 80 - 40).toFixed(0) + 'px';
+    p.style.cssText = `
+      left:${(Math.random() * 100).toFixed(1)}%;
+      bottom:-10px;
+      width:${size}px; height:${size}px;
+      background:rgba(${color},.9);
+      box-shadow:0 0 ${Math.round(size * 3)}px rgba(${color},.8);
+      animation-duration:${duration}s;
+      animation-delay:${delay}s;
+      --drift:${drift};
+      --pmax:${(0.4 + Math.random() * 0.5).toFixed(2)};
+    `;
+    field.appendChild(p);
+  }
+})();
+</script>
+</body>
+</html>

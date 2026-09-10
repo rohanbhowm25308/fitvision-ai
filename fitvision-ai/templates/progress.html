@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Progress — FitVision AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<nav class="nav"><a class="brand" href="/dashboard"><span class="dot"></span>FitVision AI</a></nav>
+<div class="app-shell">
+  {% include "_sidebar.html" %}
+  <main class="main">
+    <div class="page-head">
+      <div><h1>Progress</h1><p>Every AI-scored set, tracked over time.</p></div>
+      <button class="btn" id="shareBtn">📤 Download progress card</button>
+    </div>
+
+    <div class="panel" id="coachPanel">
+      <h2 style="margin-bottom:8px;">🤖 Weekly coach message</h2>
+      <p id="coachMessage" style="color:var(--text-dim); font-size:14px; margin:0;">Loading…</p>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box"><div class="label">Total sets</div><div class="value" id="pSets">–</div></div>
+      <div class="stat-box"><div class="label">Total reps</div><div class="value" id="pReps">–</div></div>
+      <div class="stat-box"><div class="label">Avg. form score</div><div class="value good" id="pForm">–</div></div>
+      <div class="stat-box"><div class="label">Consistency</div><div class="value warn" id="pConsistency">–</div></div>
+    </div>
+
+    <div class="panel">
+      <h2>Rep quality</h2>
+      <div class="macro-grid" style="grid-template-columns:1fr 1fr;">
+        <div class="macro-box"><div class="v" id="pGoodReps" style="color:var(--good);">–</div><div class="l">High-quality reps</div></div>
+        <div class="macro-box"><div class="v" id="pPartialReps" style="color:var(--warn);">–</div><div class="l">Partial / low-quality reps</div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Reps over time</h2>
+      <canvas id="repsChart" height="90"></canvas>
+    </div>
+
+    <div class="panel">
+      <h2>Form score trend</h2>
+      <canvas id="formChart" height="90"></canvas>
+    </div>
+
+    <div class="panel">
+      <h2>Weekly workout frequency</h2>
+      <canvas id="freqChart" height="90"></canvas>
+    </div>
+
+    <div class="panel">
+      <h2>Workout duration</h2>
+      <canvas id="durationChart" height="90"></canvas>
+    </div>
+
+    <div class="panel">
+      <h2>Weight progress</h2>
+      <div class="control-row" style="margin:0 0 14px;">
+        <input type="number" step="0.1" id="weightInput" placeholder="Log today's weight (kg)" style="flex:2; padding:9px 12px; border-radius:9px; background:#0a0f1e; border:1px solid var(--line-strong); color:var(--text);">
+        <button class="mini-btn on" id="logWeightBtn" style="flex:1;">Log weight</button>
+      </div>
+      <canvas id="weightChart" height="90"></canvas>
+    </div>
+
+    <div class="panel">
+      <h2>Best set per exercise</h2>
+      <table class="plan-table">
+        <thead><tr><th>Exercise</th><th>Sets logged</th><th>Best reps in a set</th><th>Avg. form</th></tr></thead>
+        <tbody id="exBody"><tr><td colspan="4">No data yet — complete a workout to see it here.</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<canvas id="shareCanvas" width="700" height="440" style="display:none;"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="/static/js/app.js"></script>
+<script>
+const chartColors = { grid: 'rgba(120,170,255,.08)', tick: '#8ea0c2' };
+function baseOptions(extra = {}) {
+  return {
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { color: chartColors.tick }, grid: { color: chartColors.grid } },
+      y: { ticks: { color: chartColors.tick }, grid: { color: chartColors.grid }, beginAtZero: true },
+    },
+    ...extra,
+  };
+}
+
+let PROGRESS = null, USER = null;
+
+(async function(){
+  USER = await initShell('progress');
+  if (!USER) return;
+  PROGRESS = await api('/api/progress');
+  const weekly = await api('/api/weekly-summary');
+  document.getElementById('coachMessage').textContent = weekly.message;
+
+  document.getElementById('pSets').textContent = PROGRESS.total_sets;
+  document.getElementById('pReps').textContent = PROGRESS.total_reps;
+  document.getElementById('pForm').textContent = PROGRESS.avg_form ? PROGRESS.avg_form + '%' : '–';
+  document.getElementById('pConsistency').textContent = PROGRESS.consistency + '%';
+  document.getElementById('pGoodReps').textContent = PROGRESS.good_reps || 0;
+  document.getElementById('pPartialReps').textContent = PROGRESS.partial_reps || 0;
+
+  new Chart(document.getElementById('repsChart'), {
+    type: 'line',
+    data: { labels: PROGRESS.daily.map(d => d.date), datasets: [{
+      label: 'Reps', data: PROGRESS.daily.map(d => d.reps),
+      borderColor: '#35e6ff', backgroundColor: 'rgba(53,230,255,.12)', tension: .35, fill: true, pointRadius: 3,
+    }] },
+    options: baseOptions(),
+  });
+
+  new Chart(document.getElementById('formChart'), {
+    type: 'line',
+    data: { labels: PROGRESS.daily.map(d => d.date), datasets: [{
+      label: 'Form %', data: PROGRESS.daily.map(d => d.avg_form),
+      borderColor: '#4ade80', backgroundColor: 'rgba(74,222,128,.12)', tension: .35, fill: true, pointRadius: 3,
+    }] },
+    options: baseOptions({ scales: { x: { ticks: { color: chartColors.tick }, grid: { color: chartColors.grid } }, y: { min: 0, max: 100, ticks: { color: chartColors.tick }, grid: { color: chartColors.grid } } } }),
+  });
+
+  new Chart(document.getElementById('freqChart'), {
+    type: 'bar',
+    data: { labels: PROGRESS.weekly.map(w => w.week.replace('-W', ' wk ')), datasets: [{
+      label: 'Sets/week', data: PROGRESS.weekly.map(w => w.sets), backgroundColor: '#8b6bff',
+    }] },
+    options: baseOptions(),
+  });
+
+  new Chart(document.getElementById('durationChart'), {
+    type: 'bar',
+    data: { labels: PROGRESS.daily.map(d => d.date), datasets: [{
+      label: 'Minutes', data: PROGRESS.daily.map(d => d.duration_min), backgroundColor: '#3b82f6',
+    }] },
+    options: baseOptions(),
+  });
+
+  const tbody = document.getElementById('exBody');
+  if (PROGRESS.by_exercise.length) {
+    tbody.innerHTML = PROGRESS.by_exercise.map(e => `
+      <tr><td><span class="pill ${pillClass(e.exercise)}">${e.exercise}</span></td>
+        <td>${e.sets}</td><td>${e.best_reps}</td><td>${e.avg_form}%</td></tr>
+    `).join('');
+  }
+
+  await loadWeightChart();
+  document.getElementById('logWeightBtn').addEventListener('click', logWeight);
+  document.getElementById('shareBtn').addEventListener('click', downloadShareCard);
+})();
+
+let weightChartInstance = null;
+async function loadWeightChart(){
+  const history = await api('/api/weight/history');
+  if (weightChartInstance) weightChartInstance.destroy();
+  weightChartInstance = new Chart(document.getElementById('weightChart'), {
+    type: 'line',
+    data: { labels: history.map(w => w.date), datasets: [{
+      label: 'Weight (kg)', data: history.map(w => w.weight_kg),
+      borderColor: '#ffb454', backgroundColor: 'rgba(255,180,84,.12)', tension: .3, fill: true, pointRadius: 3,
+    }] },
+    options: baseOptions(),
+  });
+}
+async function logWeight(){
+  const input = document.getElementById('weightInput');
+  const weight = parseFloat(input.value);
+  if (!weight) return;
+  await api('/api/weight/log', {method:'POST', body: JSON.stringify({weight_kg: weight})});
+  input.value = '';
+  await loadWeightChart();
+}
+
+function downloadShareCard(){
+  const canvas = document.getElementById('shareCanvas');
+  const c = canvas.getContext('2d');
+  c.fillStyle = '#05070d'; c.fillRect(0, 0, canvas.width, canvas.height);
+  const grad = c.createLinearGradient(0, 0, canvas.width, canvas.height);
+  grad.addColorStop(0, 'rgba(59,130,246,.18)'); grad.addColorStop(1, 'rgba(139,107,255,.14)');
+  c.fillStyle = grad; c.fillRect(0, 0, canvas.width, canvas.height);
+
+  c.fillStyle = '#35e6ff'; c.font = '600 16px sans-serif'; c.fillText('FITVISION AI', 40, 50);
+  c.fillStyle = '#e9eefb'; c.font = '700 30px sans-serif'; c.fillText(`${USER.name.split(' ')[0]}'s Progress Card`, 40, 95);
+
+  const stats = [
+    ['Total sets', PROGRESS.total_sets], ['Total reps', PROGRESS.total_reps],
+    ['Avg form', PROGRESS.avg_form + '%'], ['Streak', PROGRESS.streak + ' days'],
+    ['Consistency', PROGRESS.consistency + '%'], ['Level', PROGRESS.level],
+  ];
+  let y = 160;
+  stats.forEach(([label, val], i) => {
+    const x = 40 + (i % 2) * 330;
+    if (i % 2 === 0 && i > 0) y += 90;
+    c.fillStyle = '#8ea0c2'; c.font = '13px sans-serif'; c.fillText(label.toUpperCase(), x, y);
+    c.fillStyle = '#ffffff'; c.font = '700 34px sans-serif'; c.fillText(String(val), x, y + 36);
+  });
+
+  c.fillStyle = '#5a6a8c'; c.font = '12px sans-serif';
+  c.fillText('Generated by FitVision AI — your virtual gym trainer', 40, canvas.height - 30);
+
+  const link = document.createElement('a');
+  link.download = 'fitvision-progress-card.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+</script>
+</body>
+</html>

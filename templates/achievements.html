@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Achievements — FitVision AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<nav class="nav"><a class="brand" href="/dashboard"><span class="dot"></span>FitVision AI</a></nav>
+<div class="app-shell">
+  {% include "_sidebar.html" %}
+  <main class="main">
+    <div class="page-head">
+      <div><h1>My Achievements</h1><p>XP, streaks, badges, and personal records — the fun side of consistency.</p></div>
+    </div>
+
+    <div class="panel level-panel">
+      <div class="level-left">
+        <div class="level-badge" id="levelBadge">🥉</div>
+        <div>
+          <div class="level-name" id="levelName">Rookie</div>
+          <div class="level-sub" id="levelSub">0 XP</div>
+        </div>
+      </div>
+      <div class="xp-bar-wrap">
+        <div class="xp-bar"><div class="xp-bar-fill" id="xpBarFill"></div></div>
+        <div class="xp-bar-label" id="xpBarLabel">0 / 500 XP to next level</div>
+      </div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box"><div class="label">🔥 Streak</div><div class="value warn" id="statStreak">–</div></div>
+      <div class="stat-box"><div class="label">Consistency</div><div class="value good" id="statConsistency">–</div></div>
+      <div class="stat-box"><div class="label">Personal records</div><div class="value" id="statPRs">–</div></div>
+      <div class="stat-box"><div class="label">Fitness score</div><div class="value" id="statFitness">–</div></div>
+    </div>
+
+    <div class="panel">
+      <h2>Badges</h2>
+      <div class="badge-row" id="badges"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Challenges</h2>
+      <div class="challenge-row">
+        <div class="challenge-card">
+          <div class="cc-title">📅 Weekly challenge</div>
+          <div class="cc-desc">Log 4 workouts this week</div>
+          <div class="cc-bar"><div class="cc-fill" id="weeklyChallengeFill"></div></div>
+          <div class="cc-progress" id="weeklyChallengeLabel">0 / 4</div>
+        </div>
+        <div class="challenge-card">
+          <div class="cc-title">🗓️ Monthly challenge</div>
+          <div class="cc-desc">Reach a 30-day streak</div>
+          <div class="cc-bar"><div class="cc-fill" id="monthlyChallengeFill"></div></div>
+          <div class="cc-progress" id="monthlyChallengeLabel">0 / 30 days</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Your fitness journey</h2>
+      <div class="journey-timeline" id="journeyTimeline"></div>
+    </div>
+  </main>
+</div>
+
+<script src="/static/js/app.js"></script>
+<script>
+(async function(){
+  const user = await initShell('achievements');
+  if (!user) return;
+  const gam = await api('/api/achievements');
+
+  const levelIcons = { Rookie: '🥉', Warrior: '🥈', Beast: '🥇', Elite: '🏅', Champion: '👑', Legend: '⭐' };
+  document.getElementById('levelBadge').textContent = levelIcons[gam.level] || '🥉';
+  document.getElementById('levelName').textContent = gam.level;
+  document.getElementById('levelSub').textContent = `${gam.xp} XP total`;
+
+  const next = gam.next_level_xp;
+  if (next) {
+    const prevThreshold = Math.max(0, next - 1500); // approx band width for display
+    const pct = Math.min(100, Math.round((gam.xp / next) * 100));
+    document.getElementById('xpBarFill').style.width = pct + '%';
+    document.getElementById('xpBarLabel').textContent = `${gam.xp} / ${next} XP to next level`;
+  } else {
+    document.getElementById('xpBarFill').style.width = '100%';
+    document.getElementById('xpBarLabel').textContent = `${gam.xp} XP — max level reached!`;
+  }
+
+  document.getElementById('statStreak').textContent = gam.streak + (gam.streak === 1 ? ' day' : ' days');
+  document.getElementById('statConsistency').textContent = gam.consistency + '%';
+  document.getElementById('statPRs').textContent = gam.personal_records;
+  document.getElementById('statFitness').textContent = gam.fitness_score + '/100';
+
+  document.getElementById('badges').innerHTML = gam.achievements.map(a => `
+    <div class="badge ${a.unlocked ? '' : 'locked'}"><div class="ic">${a.icon}</div><div class="lb">${a.label}</div></div>
+  `).join('');
+
+  const weeklyPct = Math.min(100, Math.round((gam.total_sets % 4 === 0 && gam.total_sets > 0 ? 4 : gam.total_sets % 4) / 4 * 100));
+  document.getElementById('weeklyChallengeFill').style.width = weeklyPct + '%';
+  document.getElementById('weeklyChallengeLabel').textContent = `${Math.min(gam.total_sets, 4)} / 4`;
+
+  const monthlyPct = Math.min(100, Math.round((gam.streak / 30) * 100));
+  document.getElementById('monthlyChallengeFill').style.width = monthlyPct + '%';
+  document.getElementById('monthlyChallengeLabel').textContent = `${gam.streak} / 30 days`;
+
+  const milestones = [
+    { label: 'Day 1', done: gam.total_sets > 0 },
+    { label: 'First workout', done: gam.total_sets > 0 },
+    { label: '7-day streak', done: gam.streak >= 7 },
+    { label: '1000 reps', done: gam.total_reps >= 1000 },
+    { label: 'First PR', done: gam.personal_records >= 1 },
+  ];
+  document.getElementById('journeyTimeline').innerHTML = milestones.map((m, i) => `
+    <div class="journey-step ${m.done ? 'done' : ''}">
+      <div class="js-dot">${m.done ? '✓' : i + 1}</div>
+      <div class="js-label">${m.label}</div>
+    </div>
+  `).join('<div class="journey-connector"></div>');
+})();
+</script>
+</body>
+</html>

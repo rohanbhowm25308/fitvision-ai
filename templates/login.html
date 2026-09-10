@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="en" class="hero-editorial-html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ 'Sign up' if mode == 'signup' else 'Log in' }} — FitVision AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+/* ===========================================================
+   Editorial hero background — scoped to this page only via
+   body.hero-editorial-page, so the rest of the site is untouched.
+   =========================================================== */
+html.hero-editorial-html{ height:100%; overflow:hidden; }
+body.hero-editorial-page{
+  height:100vh; overflow:hidden; background:#f6f8f4;
+  display:flex; flex-direction:column;
+}
+.hero-editorial-page .bg-video{
+  position:fixed; inset:0; width:100%; height:100%; object-fit:cover; z-index:0;
+}
+.hero-editorial-page .scrim{
+  position:fixed; inset:0; z-index:1; pointer-events:none;
+  background:
+    radial-gradient(ellipse at 50% 46%, rgba(246,248,244,.30) 0%, rgba(246,248,244,0) 62%),
+    linear-gradient(to bottom,
+      rgba(246,248,244,.42) 0%,
+      rgba(246,248,244,.04) 34%,
+      rgba(246,248,244,.02) 66%,
+      rgba(246,248,244,.40) 100%);
+}
+.hero-editorial-page .blur-mask{
+  position:fixed; inset:0; z-index:2; pointer-events:none;
+  backdrop-filter: blur(6px);
+  -webkit-mask-image: linear-gradient(to top, #000 0%, transparent 22%);
+  mask-image: linear-gradient(to top, #000 0%, transparent 22%);
+}
+
+/* Nav — wordmark only, no links, on a login/signup page they're just noise */
+.hero-editorial-page .nav{
+  position:relative; z-index:10; background:transparent; backdrop-filter:none;
+  border-bottom:1px solid rgba(22,35,27,.16); padding:16px 48px; flex:0 0 auto;
+  justify-content:center;
+}
+.hero-editorial-page .brand{
+  font-family:"Manrope", sans-serif; font-weight:800; letter-spacing:.24em;
+  color:#0e1712; font-size:14px; text-transform:uppercase;
+}
+.hero-editorial-page .brand .dot{
+  background:#2f5d43; box-shadow:0 0 0 4px rgba(47,93,67,.16); width:10px; height:10px;
+}
+
+/* Content column fills remaining height, everything centered, nothing scrolls */
+.hero-editorial-page .auth-wrap{
+  flex:1 1 auto; min-height:0; padding:10px 20px; overflow:hidden;
+}
+.hero-editorial-page .auth-column{ justify-content:center; }
+
+/* Kicker + headline sitting above the reveal button */
+.hero-editorial-page .sw-kicker{
+  display:flex; align-items:center; gap:10px; justify-content:center; margin:0 auto 12px;
+  padding:8px 20px; border-radius:100px; width:fit-content;
+  font-family:"JetBrains Mono", monospace; font-weight:700; font-size:11px; letter-spacing:.28em; text-transform:uppercase;
+  color:#000000; border:2px solid #2f5d43;
+  background:#ffffff; box-shadow:0 4px 18px rgba(0,0,0,.25);
+}
+.hero-editorial-page .sw-kicker .sw-dot{ width:6px; height:6px; border-radius:50%; background:#2f5d43; flex-shrink:0; }
+.hero-editorial-page .sw-h1{
+  font-family:"Manrope", sans-serif; font-weight:800; font-size:clamp(24px,3.4vw,38px);
+  line-height:1.05; letter-spacing:-.03em; color:#000000; text-align:center; margin:0 0 18px;
+  text-shadow:none;
+}
+
+/* Editorial reveal button — replaces the dark robot with something that
+   belongs on a bright nature scene: a simple pulsing ink/green ring. */
+.hero-editorial-page .sw-reveal{ display:flex; flex-direction:column; align-items:center; margin-bottom:12px; }
+.hero-editorial-page .sw-reveal-btn{
+  position:relative; width:52px; height:52px; border-radius:50%; padding:0;
+  background:rgba(246,248,244,.92); border:1.5px solid rgba(22,35,27,.4);
+  box-shadow:0 4px 16px rgba(14,23,18,.2);
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:border-color .3s ease, background .3s ease, transform .2s ease;
+}
+.hero-editorial-page .sw-reveal-btn:hover{ transform:translateY(-1px); border-color:#2f5d43; }
+.hero-editorial-page .sw-reveal-core{
+  width:9px; height:9px; border-radius:50%; background:#2f5d43; transition:all .4s ease;
+}
+.hero-editorial-page .sw-reveal-ring{
+  position:absolute; inset:0; border-radius:50%; border:1.5px solid rgba(47,93,67,.4);
+  animation:swPulseRing 2.4s ease-out infinite;
+}
+.hero-editorial-page .sw-reveal-ring.r2{ animation-delay:1.2s; }
+@keyframes swPulseRing{
+  0%{ transform:scale(1); opacity:.65; }
+  100%{ transform:scale(1.7); opacity:0; }
+}
+.hero-editorial-page .sw-reveal-hint{
+  margin-top:10px; font-family:"Inter",sans-serif; font-weight:700; font-size:12px;
+  color:#132a1d; transition:opacity .3s ease;
+}
+.hero-editorial-page .sw-reveal.lit .sw-reveal-core{
+  background:#2f5d43; box-shadow:0 0 14px rgba(47,93,67,.6); transform:scale(1.3);
+}
+.hero-editorial-page .sw-reveal.lit .sw-reveal-btn{ border-color:#2f5d43; background:rgba(246,248,244,.98); }
+.hero-editorial-page .sw-reveal.lit .sw-reveal-hint{ opacity:0; }
+
+/* Card — forced to a solid near-black so it reads as unmistakably dark
+   against the bright scene, instead of blending into a washed grey */
+.hero-editorial-page .auth-card{
+  padding:38px 48px; max-width:520px;
+  background:#000000; border:1px solid rgba(255,255,255,.08);
+  box-shadow:0 24px 70px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.05) inset;
+}
+.hero-editorial-page .auth-card h1{ font-size:25px; margin-bottom:6px; }
+.hero-editorial-page .auth-card .sub{ font-size:14px; margin-bottom:20px; }
+.hero-editorial-page .field{ margin-bottom:15px; }
+.hero-editorial-page .field input, .hero-editorial-page .field select{ padding:11px 15px; font-size:14.5px; }
+.hero-editorial-page .field label{ margin-bottom:6px; font-size:13px; }
+.hero-editorial-page .pw-toggle{ top:35px; right:12px; font-size:11px; padding:3px; }
+.hero-editorial-page .google-btn-wrap{ margin-bottom:13px; min-height:auto; }
+.hero-editorial-page .divider{ margin:2px 0 15px; }
+.hero-editorial-page .auth-switch{ margin-top:13px; font-size:14px; }
+.hero-editorial-page .wizard-dots{ margin-bottom:15px; }
+.hero-editorial-page .btn{ padding:11px 22px; font-size:14px; }
+.hero-editorial-page .choice-card{ padding:11px 8px; gap:4px; font-size:11.5px; }
+.hero-editorial-page .choice-card .ic{ font-size:17px; }
+.hero-editorial-page .choice-grid{ gap:7px; }
+.hero-editorial-page .form-row{ gap:10px; }
+.hero-editorial-page .wizard-step h2{ font-size:14.5px; margin-bottom:2px; }
+.hero-editorial-page .wizard-step .step-sub{ font-size:11.5px; margin-bottom:12px; }
+.hero-editorial-page .wizard-nav{ margin-top:2px; }
+
+/* Footer tag — part of the fixed layout, not a page-bottom scroll target */
+.hero-editorial-page .sw-footer{
+  position:relative; z-index:10; display:flex; align-items:center; justify-content:center; gap:16px;
+  flex:0 0 auto; padding:0 48px 14px; font-family:"JetBrains Mono", monospace; font-weight:700; font-size:10.5px;
+  letter-spacing:.26em; text-transform:uppercase; color:#132a1d;
+}
+.hero-editorial-page .sw-rule{ width:26px; height:2px; background:rgba(19,42,29,.5); }
+
+/* Motion: staggered blur-rise entrance */
+.hero-editorial-page .rise{ opacity:0; animation:swBlurFadeUp 1s cubic-bezier(.2,.7,.2,1) forwards; }
+@keyframes swBlurFadeUp{
+  from{ opacity:0; filter:blur(20px); transform:translateY(36px); }
+  to{ opacity:1; filter:blur(0); transform:translateY(0); }
+}
+@media (prefers-reduced-motion: reduce){
+  .hero-editorial-page .rise{ opacity:1; animation:none; filter:none; transform:none; }
+}
+</style>
+</head>
+<body class="hero-editorial-page">
+<video class="bg-video" autoplay muted loop playsinline
+  src="https://zxdefgavgwfxastwmmjm.supabase.co/storage/v1/object/public/assets/stillwater.mp4"></video>
+<div class="scrim"></div>
+<div class="blur-mask"></div>
+
+<nav class="nav">
+  <a class="brand rise" style="animation-delay:0ms" href="/"><span class="dot"></span>FitVision AI</a>
+</nav>
+
+<div class="auth-wrap">
+  <div class="auth-column">
+    <div class="sw-kicker rise" style="animation-delay:280ms">
+      <span class="sw-dot"></span>Your AI-powered personal trainer
+    </div>
+    <h1 class="sw-h1 rise" style="animation-delay:360ms">Built for real training.</h1>
+
+    <div class="sw-reveal rise" id="botScene" style="animation-delay:460ms">
+      <button class="sw-reveal-btn" id="botPowerBtn" type="button" aria-label="Begin — reveal sign-in">
+        <span class="sw-reveal-ring r1"></span>
+        <span class="sw-reveal-ring r2"></span>
+        <span class="sw-reveal-core"></span>
+      </button>
+      <p class="sw-reveal-hint">tap to begin</p>
+    </div>
+
+  <div class="auth-card reveal-card" id="authCard">
+    {% if mode == 'signup' %}
+      <h1>Create your account</h1>
+      <p class="sub">Takes under a minute. One click with Google, or fill in a few quick steps.</p>
+    {% else %}
+      <h1>Welcome back</h1>
+      <p class="sub">Your trainer remembers exactly where you left off.</p>
+    {% endif %}
+
+    <div class="error-msg" id="errBox"></div>
+
+
+    {% if mode == 'signup' %}
+    <div class="wizard-dots">
+      <div class="wizard-dot active" data-dot="1"></div>
+      <div class="wizard-dot" data-dot="2"></div>
+      <div class="wizard-dot" data-dot="3"></div>
+      <div class="wizard-dot" data-dot="4"></div>
+      <div class="wizard-dot" data-dot="5"></div>
+      <div class="wizard-dot" data-dot="6"></div>
+    </div>
+    <form id="signupForm">
+      <div class="wizard-step active" data-step="1">
+        <h2>1. Your login</h2>
+        <p class="step-sub">Just the basics to create your account.</p>
+        <div class="field"><label>Full name</label><input name="name" required></div>
+        <div class="field"><label>Email</label><input type="email" name="email" required></div>
+        <div class="field pw-field"><label>Password</label><input type="password" name="password" id="signupPw" required minlength="6">
+          <button type="button" class="pw-toggle" data-toggle="signupPw">Show</button>
+        </div>
+        <div class="wizard-nav"><button type="button" class="btn btn-primary" data-next="2">Continue →</button></div>
+      </div>
+
+      <div class="wizard-step" data-step="2">
+        <h2>2. About you</h2>
+        <p class="step-sub">This lets your AI trainer count reps and calculate your plan accurately.</p>
+        <div class="form-row">
+          <div class="field"><label>Age</label><input type="number" name="age" min="10" max="90" required></div>
+          <div class="field"><label>Gender</label>
+            <select name="gender" required><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label>Height (cm)</label><input type="number" name="height_cm" required></div>
+          <div class="field"><label>Weight (kg)</label><input type="number" name="weight_kg" required></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label>Diet preference</label>
+            <select name="diet_preference"><option value="non_veg">Non-vegetarian</option><option value="veg">Vegetarian</option></select>
+          </div>
+          <div class="field"><label>Food allergies (optional)</label><input type="text" name="allergies" placeholder="e.g. nuts, dairy"></div>
+        </div>
+        <div class="wizard-nav">
+          <button type="button" class="btn" data-back="1">← Back</button>
+          <button type="button" class="btn btn-primary" data-next="3">Continue →</button>
+        </div>
+      </div>
+
+      <div class="wizard-step" data-step="3">
+        <h2>3. Your fitness goal</h2>
+        <p class="step-sub">Pick what fits best — you can change this anytime.</p>
+        <input type="hidden" name="goal" required>
+        <div class="choice-grid" data-choice-group="goal">
+          <button type="button" class="choice-card" data-value="muscle_gain"><span class="ic">💪</span>Muscle Gain</button>
+          <button type="button" class="choice-card" data-value="fat_loss"><span class="ic">🔥</span>Fat Loss</button>
+          <button type="button" class="choice-card" data-value="strength"><span class="ic">🏋️</span>Strength</button>
+          <button type="button" class="choice-card" data-value="general_fitness"><span class="ic">❤️</span>General Fitness</button>
+          <button type="button" class="choice-card" data-value="endurance"><span class="ic">🏃</span>Endurance</button>
+        </div>
+        <div class="wizard-nav">
+          <button type="button" class="btn" data-back="2">← Back</button>
+          <button type="button" class="btn btn-primary" data-next="4">Continue →</button>
+        </div>
+      </div>
+
+      <div class="wizard-step" data-step="4">
+        <h2>4. Your equipment</h2>
+        <p class="step-sub">What do you have access to? We'll only plan exercises you can actually do.</p>
+        <input type="hidden" name="equipment" required>
+        <div class="choice-grid" data-choice-group="equipment">
+          <button type="button" class="choice-card" data-value="gym"><span class="ic">🏢</span>Gym equipment</button>
+          <button type="button" class="choice-card" data-value="home"><span class="ic">🏠</span>Home workout</button>
+          <button type="button" class="choice-card" data-value="dumbbells"><span class="ic">🏋️‍♀️</span>Dumbbells only</button>
+          <button type="button" class="choice-card" data-value="bodyweight"><span class="ic">🤸</span>Bodyweight</button>
+        </div>
+        <div class="wizard-nav">
+          <button type="button" class="btn" data-back="3">← Back</button>
+          <button type="button" class="btn btn-primary" data-next="5">Continue →</button>
+        </div>
+      </div>
+
+      <div class="wizard-step" data-step="5">
+        <h2>5. Workout time & experience</h2>
+        <p class="step-sub">How long do your sessions usually run?</p>
+        <input type="hidden" name="workout_time_pref" required>
+        <div class="choice-grid four" data-choice-group="workout_time_pref">
+          <button type="button" class="choice-card" data-value="20"><span class="ic">⏱️</span>20 min</button>
+          <button type="button" class="choice-card" data-value="30"><span class="ic">⏱️</span>30 min</button>
+          <button type="button" class="choice-card" data-value="45"><span class="ic">⏱️</span>45 min</button>
+          <button type="button" class="choice-card" data-value="60"><span class="ic">⏱️</span>60 min</button>
+        </div>
+        <div class="form-row" style="margin-top:16px;">
+          <div class="field"><label>Experience</label>
+            <select name="experience"><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option></select>
+          </div>
+          <div class="field"><label>Activity level</label>
+            <select name="activity_level">
+              <option value="sedentary">Mostly sitting</option>
+              <option value="light">Lightly active</option>
+              <option value="moderate" selected>Moderately active</option>
+              <option value="high">Very active</option>
+              <option value="athlete">Athlete</option>
+            </select>
+          </div>
+        </div>
+        <div class="field"><label>I'm signing up as a</label>
+          <select name="role"><option value="client">Client (I want to train)</option><option value="trainer">Trainer (I coach others)</option></select>
+        </div>
+        <div class="wizard-nav">
+          <button type="button" class="btn" data-back="4">← Back</button>
+          <button type="button" class="btn btn-primary" data-next="6">Continue →</button>
+        </div>
+      </div>
+
+      <div class="wizard-step" data-step="6">
+        <h2>6. Set up Face ID <span style="color:var(--text-faint); font-weight:400; font-size:13px;">(optional)</span></h2>
+        <p class="step-sub">Log in with your face next time, and let your AI trainer notice if someone else picks up your session mid-workout.</p>
+        <input type="hidden" name="face_descriptor" id="faceDescriptorField">
+        <div class="face-video-wrap" id="signupFaceWrap" style="max-width:220px;">
+          <video id="signupFaceVideo" autoplay playsinline muted></video>
+          <canvas id="signupFaceOverlay"></canvas>
+        </div>
+        <p class="face-status" id="signupFaceStatus">Click "Enable camera" to set up Face ID.</p>
+        <div class="control-row">
+          <button type="button" class="mini-btn" id="signupFaceEnableBtn" style="flex:1;">🎥 Enable camera</button>
+          <button type="button" class="mini-btn on" id="signupFaceCaptureBtn" style="flex:1;" disabled>📸 Capture</button>
+        </div>
+        <p class="face-privacy-note">Your face photo is never uploaded — only a numeric descriptor is saved, computed right here in your browser.</p>
+        <div class="wizard-nav">
+          <button type="button" class="btn" data-back="5">← Back</button>
+          <button class="btn btn-primary" type="submit">Create account →</button>
+        </div>
+      </div>
+    </form>
+    <div class="divider">or continue with</div>
+    <div class="google-btn-wrap" id="googleBtn"></div>
+    {% if not GOOGLE_CLIENT_ID %}
+      <p class="google-note">(Google sign-in needs a GOOGLE_CLIENT_ID in .env — see the README)</p>
+    {% endif %}
+    <div class="auth-switch">Already have an account? <a href="/login">Log in</a></div>
+
+    {% else %}
+    <form id="loginForm">
+      <div class="field"><label>Email</label><input type="email" name="email" required></div>
+      <div class="field pw-field"><label>Password</label><input type="password" name="password" id="loginPw" required>
+        <button type="button" class="pw-toggle" data-toggle="loginPw">Show</button>
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">Log in →</button>
+    </form>
+    <div class="divider">or continue with</div>
+    <div class="google-btn-wrap" id="googleBtn"></div>
+    {% if not GOOGLE_CLIENT_ID %}
+      <p class="google-note">(Google sign-in needs a GOOGLE_CLIENT_ID in .env — see the README)</p>
+    {% endif %}
+
+    <button type="button" class="btn btn-block" id="faceLoginOpenBtn" style="margin-top:10px;">📷 Log in with Face ID</button>
+    <div class="face-panel" id="facePanel" style="display:none;">
+      <div class="face-video-wrap">
+        <video id="faceVideo" autoplay playsinline muted></video>
+        <canvas id="faceOverlay"></canvas>
+      </div>
+      <p class="face-status" id="faceStatus">Loading face recognition…</p>
+      <div class="control-row" style="margin-top:10px;">
+        <button type="button" class="btn btn-primary" id="faceCaptureBtn" style="flex:2;" disabled>📸 Capture & Log In</button>
+        <button type="button" class="mini-btn" id="faceCancelBtn">Cancel</button>
+      </div>
+      <p class="face-privacy-note">Your face photo is never uploaded — only a numeric descriptor is sent, computed right here in your browser.</p>
+    </div>
+
+    <div class="auth-switch">New here? <a href="/signup">Create a profile</a></div>
+    {% endif %}
+  </div>
+  </div>
+</div>
+
+<div class="face-modal-overlay" id="postLoginCaptureOverlay" style="display:none;">
+  <div class="face-modal-card">
+    <h2>📸 Face verification required</h2>
+    <p class="sub">Your AI trainer needs to recognize you before continuing — this is what lets it notice if someone else picks up the camera mid-workout.</p>
+    <div class="face-video-wrap">
+      <video id="postLoginVideo" autoplay playsinline muted></video>
+      <canvas id="postLoginOverlay"></canvas>
+    </div>
+    <p class="face-status" id="postLoginStatus">Starting camera…</p>
+    <button type="button" class="btn btn-primary btn-block" id="postLoginRetryBtn" style="margin-top:14px; display:none;">🔄 Retry</button>
+    <p class="face-privacy-note">Your face photo is never uploaded — only a numeric descriptor is saved, computed right here in your browser.</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<script>
+// ---------- Shared face-api model loader (Face ID login + post-login capture) ----------
+// Two CDN sources, tried in order — GitHub Pages hosting can be flaky/slow,
+// so we fall back to a jsdelivr mirror of the same model files if the first
+// one fails, instead of silently giving up.
+const FACE_MODEL_URLS = [
+  'https://justadudewhohacks.github.io/face-api.js/models',
+  'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights',
+];
+let sharedFaceModelsReady = false;
+async function loadModelsFrom(url) {
+  await faceapi.nets.tinyFaceDetector.loadFromUri(url);
+  await faceapi.nets.faceLandmark68Net.loadFromUri(url);
+  await faceapi.nets.faceRecognitionNet.loadFromUri(url);
+}
+async function ensureFaceModelsLoaded(onStatus) {
+  if (sharedFaceModelsReady) return true;
+  if (typeof faceapi === 'undefined') {
+    if (onStatus) onStatus('⚠️ Face recognition library failed to load (network issue).');
+    return false;
+  }
+  for (let i = 0; i < FACE_MODEL_URLS.length; i++) {
+    try {
+      if (onStatus) onStatus(i === 0 ? 'Loading face recognition…' : 'Retrying with a backup source…');
+      await loadModelsFrom(FACE_MODEL_URLS[i]);
+      sharedFaceModelsReady = true;
+      return true;
+    } catch (e) {
+      console.warn(`Face model source ${i + 1} failed:`, e);
+    }
+  }
+  if (onStatus) onStatus("⚠️ Couldn't load face recognition (no internet reaching the model files). Skipping.");
+  return false;
+}
+
+// ---------- Mandatory face capture (runs after email/password OR Google login) ----------
+// Face verification is required to continue — there is no skip button and no
+// timeout that lets someone through unverified. Genuine technical failures
+// (no camera, model files unreachable) show a clear reason and a Retry
+// button rather than silently blocking forever.
+async function runPostLoginFaceCapture() {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('postLoginCaptureOverlay');
+    const video = document.getElementById('postLoginVideo');
+    const canvas = document.getElementById('postLoginOverlay');
+    const status = document.getElementById('postLoginStatus');
+    const retryBtn = document.getElementById('postLoginRetryBtn');
+    if (!overlay) { resolve(); return; } // page has no capture modal at all — nothing to enforce
+
+    let stream = null, loopId = null, done = false, goodStreak = 0;
+
+    function stopStreamAndLoop() {
+      if (loopId) cancelAnimationFrame(loopId);
+      if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    }
+    function finish() {
+      if (done) return;
+      done = true;
+      stopStreamAndLoop();
+      overlay.style.display = 'none';
+      resolve();
+    }
+    function showRetry(message) {
+      status.textContent = message;
+      retryBtn.style.display = 'block';
+    }
+
+    retryBtn.addEventListener('click', () => {
+      retryBtn.style.display = 'none';
+      attempt();
+    });
+
+    async function attempt() {
+      stopStreamAndLoop();
+      overlay.style.display = 'flex';
+      goodStreak = 0;
+      status.textContent = 'Loading face recognition…';
+      const ready = await ensureFaceModelsLoaded((msg) => { if (!done) status.textContent = msg; });
+      if (done) return;
+      if (!ready) { showRetry("⚠️ Couldn't load face recognition. Check your internet connection and retry."); return; }
+
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { width: 400, height: 300 }, audio: false });
+      } catch (err) {
+        showRetry('⚠️ Camera access is required to continue. Please allow camera permission, then retry.');
+        return;
+      }
+      video.srcObject = stream;
+      await new Promise(res => { video.onloadedmetadata = res; });
+      video.play();
+      canvas.width = video.clientWidth || 400;
+      canvas.height = video.clientHeight || 300;
+      status.textContent = 'Position your face in frame…';
+
+      const ctx = canvas.getContext('2d');
+      const step = async () => {
+        if (done) return;
+        let result = null;
+        try {
+          result = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+            .withFaceLandmarks().withFaceDescriptor();
+        } catch (e) { /* try again next frame */ }
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (result) {
+          goodStreak += 1;
+          const box = result.detection.box;
+          const sx = canvas.width / video.videoWidth, sy = canvas.height / video.videoHeight;
+          ctx.strokeStyle = '#35e6ff'; ctx.lineWidth = 2;
+          ctx.strokeRect(box.x * sx, box.y * sy, box.width * sx, box.height * sy);
+          status.textContent = goodStreak < 3 ? 'Hold still…' : 'Got it!';
+          if (goodStreak >= 3) {
+            try {
+              await fetch('/api/face/enroll', {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ descriptor: Array.from(result.descriptor) }),
+              });
+              status.textContent = '✅ Face verified!';
+              setTimeout(finish, 500);
+            } catch (e) {
+              showRetry('⚠️ Could not save your face data — check your connection and retry.');
+            }
+            return;
+          }
+        } else {
+          goodStreak = 0;
+          status.textContent = 'Position your face in frame…';
+        }
+        loopId = requestAnimationFrame(step);
+      };
+      step();
+    }
+
+    attempt();
+  });
+}
+
+// ---------- Face ID login (login page only) ----------
+const faceLoginOpenBtn = document.getElementById('faceLoginOpenBtn');
+if (faceLoginOpenBtn) {
+  const facePanel = document.getElementById('facePanel');
+  const faceVideo = document.getElementById('faceVideo');
+  const faceOverlay = document.getElementById('faceOverlay');
+  const faceStatus = document.getElementById('faceStatus');
+  const faceCaptureBtn = document.getElementById('faceCaptureBtn');
+  const faceCancelBtn = document.getElementById('faceCancelBtn');
+  let faceStream = null, detectLoopId = null, lastDetection = null;
+
+  async function openFacePanel() {
+    facePanel.style.display = 'block';
+    faceLoginOpenBtn.style.display = 'none';
+    faceStatus.textContent = 'Loading face recognition…';
+    try {
+      const ready = await ensureFaceModelsLoaded((msg) => { faceStatus.textContent = msg; });
+      if (!ready) return; // status message from ensureFaceModelsLoaded stays on screen explaining why
+      faceStream = await navigator.mediaDevices.getUserMedia({ video: { width: 400, height: 300 }, audio: false });
+      faceVideo.srcObject = faceStream;
+      await new Promise(res => { faceVideo.onloadedmetadata = res; });
+      faceVideo.play();
+      faceOverlay.width = faceVideo.clientWidth || 400;
+      faceOverlay.height = faceVideo.clientHeight || 300;
+      faceStatus.textContent = 'Position your face in frame…';
+      runDetectLoop();
+    } catch (err) {
+      faceStatus.textContent = `Couldn't access your camera: ${err.message}`;
+    }
+  }
+
+  async function runDetectLoop() {
+    const ctx = faceOverlay.getContext('2d');
+    const step = async () => {
+      if (!faceStream) return;
+      const result = await faceapi.detectSingleFace(faceVideo, new faceapi.TinyFaceDetectorOptions())
+        .withFaceLandmarks().withFaceDescriptor();
+      ctx.clearRect(0, 0, faceOverlay.width, faceOverlay.height);
+      if (result) {
+        lastDetection = result;
+        faceCaptureBtn.disabled = false;
+        faceStatus.textContent = '✅ Face detected — tap Capture & Log In';
+        const box = result.detection.box;
+        const sx = faceOverlay.width / faceVideo.videoWidth, sy = faceOverlay.height / faceVideo.videoHeight;
+        ctx.strokeStyle = '#35e6ff'; ctx.lineWidth = 2;
+        ctx.strokeRect(box.x * sx, box.y * sy, box.width * sx, box.height * sy);
+      } else {
+        lastDetection = null;
+        faceCaptureBtn.disabled = true;
+        faceStatus.textContent = 'Position your face in frame…';
+      }
+      detectLoopId = requestAnimationFrame(step);
+    };
+    step();
+  }
+
+  function closeFacePanel() {
+    if (detectLoopId) cancelAnimationFrame(detectLoopId);
+    if (faceStream) { faceStream.getTracks().forEach(t => t.stop()); faceStream = null; }
+    facePanel.style.display = 'none';
+    faceLoginOpenBtn.style.display = 'flex';
+  }
+
+  faceLoginOpenBtn.addEventListener('click', openFacePanel);
+  faceCancelBtn.addEventListener('click', closeFacePanel);
+  faceCaptureBtn.addEventListener('click', async () => {
+    if (!lastDetection) return;
+    faceStatus.textContent = 'Checking…';
+    try {
+      const res = await fetch('/api/face/login', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ descriptor: Array.from(lastDetection.descriptor) }),
+      });
+      const data = await res.json();
+      if (!res.ok) { faceStatus.textContent = `⚠️ ${data.error}`; return; }
+      faceStatus.textContent = `✅ Recognized as ${data.name} — logging in…`;
+      closeFacePanel();
+      window.location.href = '/dashboard';
+    } catch (e) {
+      faceStatus.textContent = 'Something went wrong reaching the server.';
+    }
+  });
+}
+</script>
+
+<script>
+// ---------- Robot power-on reveal ----------
+const botScene = document.getElementById('botScene');
+const botPowerBtn = document.getElementById('botPowerBtn');
+const authCard = document.getElementById('authCard');
+botPowerBtn.addEventListener('click', () => {
+  const isLit = botScene.classList.toggle('lit');
+  authCard.classList.toggle('lit-in', isLit);
+});
+
+// ---------- Password show/hide ----------
+document.querySelectorAll('.pw-toggle').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const input = document.getElementById(btn.dataset.toggle);
+    const showing = input.type === 'text';
+    input.type = showing ? 'password' : 'text';
+    btn.textContent = showing ? 'Show' : 'Hide';
+  });
+});
+
+function showErr(msg){ const b=document.getElementById('errBox'); b.textContent=msg; b.style.display='block'; window.scrollTo(0,0); }
+
+// ---------- Google Sign-In ----------
+async function handleGoogleCredential(response){
+  try{
+    const res = await fetch('/api/auth/google', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ credential: response.credential }),
+    });
+    const data = await res.json();
+    if (!res.ok) return showErr(data.error || 'Google sign-in failed.');
+    await runPostLoginFaceCapture();
+    window.location.href = data.profile_complete ? '/dashboard' : '/complete-profile';
+  } catch(e){ showErr('Could not reach the server. Is it running?'); }
+}
+window.onload = function(){
+  const clientId = "{{ GOOGLE_CLIENT_ID }}";
+  if (clientId && window.google) {
+    google.accounts.id.initialize({ client_id: clientId, callback: handleGoogleCredential });
+    google.accounts.id.renderButton(document.getElementById('googleBtn'), { theme: 'filled_black', size: 'large', shape: 'pill', width: 400 });
+  }
+};
+
+// ---------- Manual signup wizard ----------
+const signupForm = document.getElementById('signupForm');
+
+// ---------- Face ID enrollment (signup wizard, step 6) ----------
+const signupFaceEnableBtn = document.getElementById('signupFaceEnableBtn');
+if (signupFaceEnableBtn) {
+  const signupFaceVideo = document.getElementById('signupFaceVideo');
+  const signupFaceOverlay = document.getElementById('signupFaceOverlay');
+  const signupFaceStatus = document.getElementById('signupFaceStatus');
+  const signupFaceCaptureBtn = document.getElementById('signupFaceCaptureBtn');
+  const faceDescriptorField = document.getElementById('faceDescriptorField');
+  let signupFaceStream = null, signupModelsReady = false, signupLastDetection = null, signupLoopId = null;
+
+  signupFaceEnableBtn.addEventListener('click', async () => {
+    signupFaceStatus.textContent = 'Loading face recognition…';
+    try {
+      if (!signupModelsReady) {
+        await faceapi.nets.tinyFaceDetector.loadFromUri(FACE_MODEL_URL);
+        await faceapi.nets.faceLandmark68Net.loadFromUri(FACE_MODEL_URL);
+        await faceapi.nets.faceRecognitionNet.loadFromUri(FACE_MODEL_URL);
+        signupModelsReady = true;
+      }
+      signupFaceStream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 }, audio: false });
+      signupFaceVideo.srcObject = signupFaceStream;
+      await new Promise(res => { signupFaceVideo.onloadedmetadata = res; });
+      signupFaceVideo.play();
+      signupFaceOverlay.width = signupFaceVideo.clientWidth || 220;
+      signupFaceOverlay.height = signupFaceVideo.clientHeight || 220;
+      signupFaceStatus.textContent = 'Position your face in frame…';
+      const ctx = signupFaceOverlay.getContext('2d');
+      const step = async () => {
+        if (!signupFaceStream) return;
+        const result = await faceapi.detectSingleFace(signupFaceVideo, new faceapi.TinyFaceDetectorOptions())
+          .withFaceLandmarks().withFaceDescriptor();
+        ctx.clearRect(0, 0, signupFaceOverlay.width, signupFaceOverlay.height);
+        if (result) {
+          signupLastDetection = result;
+          signupFaceCaptureBtn.disabled = false;
+          signupFaceStatus.textContent = '✅ Face detected — tap Capture';
+          const box = result.detection.box;
+          const sx = signupFaceOverlay.width / signupFaceVideo.videoWidth, sy = signupFaceOverlay.height / signupFaceVideo.videoHeight;
+          ctx.strokeStyle = '#35e6ff'; ctx.lineWidth = 2;
+          ctx.strokeRect(box.x * sx, box.y * sy, box.width * sx, box.height * sy);
+        } else {
+          signupLastDetection = null;
+          signupFaceCaptureBtn.disabled = true;
+          signupFaceStatus.textContent = 'Position your face in frame…';
+        }
+        signupLoopId = requestAnimationFrame(step);
+      };
+      step();
+    } catch (err) {
+      signupFaceStatus.textContent = `Couldn't access your camera: ${err.message}`;
+    }
+  });
+
+  signupFaceCaptureBtn.addEventListener('click', () => {
+    if (!signupLastDetection) return;
+    faceDescriptorField.value = JSON.stringify(Array.from(signupLastDetection.descriptor));
+    signupFaceStatus.textContent = '✅ Face captured! It will be saved when you finish creating your account.';
+    if (signupLoopId) cancelAnimationFrame(signupLoopId);
+    if (signupFaceStream) { signupFaceStream.getTracks().forEach(t => t.stop()); signupFaceStream = null; }
+  });
+}
+
+if (signupForm) {
+  const steps = [...signupForm.querySelectorAll('.wizard-step')];
+  const dots = [...document.querySelectorAll('.wizard-dot')];
+  function goTo(n){
+    steps.forEach(s => s.classList.toggle('active', s.dataset.step === String(n)));
+    dots.forEach(d => d.classList.toggle('active', d.dataset.dot === String(n)));
+  }
+  // choice-card groups (goal / equipment / workout_time_pref)
+  signupForm.querySelectorAll('[data-choice-group]').forEach(group => {
+    const hidden = group.parentElement.querySelector(`input[name="${group.dataset.choiceGroup}"]`);
+    group.querySelectorAll('.choice-card').forEach(card => {
+      card.addEventListener('click', () => {
+        group.querySelectorAll('.choice-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        hidden.value = card.dataset.value;
+      });
+    });
+  });
+  signupForm.querySelectorAll('[data-next]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const current = btn.closest('.wizard-step');
+      const inputs = current.querySelectorAll('input, select');
+      for (const el of inputs) {
+        if (el.type === 'hidden' && !el.value) { showErr('Please pick one of the options above.'); return; }
+        if (el.type !== 'hidden' && !el.checkValidity()) { el.reportValidity(); return; }
+      }
+      document.getElementById('errBox').style.display = 'none';
+      goTo(btn.dataset.next);
+    });
+  });
+  signupForm.querySelectorAll('[data-back]').forEach(btn => {
+    btn.addEventListener('click', () => goTo(btn.dataset.back));
+  });
+  signupForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = Object.fromEntries(new FormData(signupForm).entries());
+    if (fd.face_descriptor) {
+      try { fd.face_descriptor = JSON.parse(fd.face_descriptor); }
+      catch (e) { delete fd.face_descriptor; }
+    } else {
+      delete fd.face_descriptor;
+    }
+    const res = await fetch('/api/signup', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(fd)});
+    const data = await res.json();
+    if (!res.ok) return showErr(data.error || 'Something went wrong');
+    window.location.href = '/dashboard';
+  });
+}
+
+// ---------- Manual login ----------
+const loginForm = document.getElementById('loginForm');
+if (loginForm) {
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const submitBtn = loginForm.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    const fd = Object.fromEntries(new FormData(loginForm).entries());
+    const res = await fetch('/api/login', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(fd)});
+    const data = await res.json();
+    if (!res.ok) { submitBtn.disabled = false; return showErr(data.error || 'Something went wrong'); }
+    await runPostLoginFaceCapture();
+    window.location.href = '/dashboard';
+  });
+}
+</script>
+
+<div class="sw-footer rise" style="animation-delay:1020ms">
+  <span class="sw-rule"></span>FITVISION AI — TRAIN WITH FOCUS, UNDISTURBED<span class="sw-rule"></span>
+</div>
+
+<script>
+// Background video sometimes needs a nudge to actually start looping,
+// especially on the first paint — this is a harmless best-effort retry,
+// never blocks anything if it fails.
+(function ensureBgVideoPlays(){
+  const v = document.querySelector('.bg-video');
+  if (!v) return;
+  const tryPlay = () => { v.play().catch(() => {}); };
+  v.addEventListener('canplay', tryPlay);
+  window.addEventListener('load', tryPlay);
+})();
+</script>
+</body>
+</html>

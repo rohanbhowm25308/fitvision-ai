@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ask AI — FitVision AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<nav class="nav"><a class="brand" href="/dashboard"><span class="dot"></span>FitVision AI</a></nav>
+<div class="app-shell">
+  {% include "_sidebar.html" %}
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1>Ask AI</h1>
+        <p>One assistant, several specialists behind it — workout, nutrition, form, progress, and motivation.</p>
+      </div>
+      <button class="mini-btn on" id="speakToggle" style="flex:none; padding:9px 16px;">🔊 Voice replies: on</button>
+    </div>
+
+    <div class="quick-prompts" id="quickPrompts">
+      <button class="prompt-chip" data-msg="What should I do today?">What should I do today?</button>
+      <button class="prompt-chip" data-msg="Explain how to do a bench press">Explain bench press</button>
+      <button class="prompt-chip" data-msg="What can I do instead of leg press?">Alternative to leg press?</button>
+      <button class="prompt-chip" data-msg="Why might my form score be low?">Why is my form score low?</button>
+      <button class="prompt-chip" data-msg="I don't feel motivated today">I don't feel motivated today</button>
+    </div>
+
+    <div class="panel">
+      <div class="chat-panel" style="height:560px;">
+        <div class="chat-log" id="chatLog">
+          <div class="msg bot">Hi! I'm your AI trainer — ask me about workouts, form, nutrition, your progress, or just say hi if you need a push today.</div>
+        </div>
+        <div class="chat-input">
+          <button class="mic-btn" id="micBtn" title="Speak your question" type="button">🎤</button>
+          <input id="chatInput" placeholder="Ask anything about your training… or tap the mic">
+          <button class="btn btn-primary" id="chatSend">Send</button>
+        </div>
+        <div class="mic-status" id="micStatus"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/static/js/app.js"></script>
+<script>
+const AGENT_LABEL = {
+  workout: '🏋️ Workout Coach', nutrition: '🍎 Nutrition', form: '🦴 Form & Safety',
+  progress: '📊 Progress', motivation: '🔥 Motivation', general: '🤖 FitVision AI',
+};
+
+let voiceRepliesOn = true;
+
+function speakReply(text){
+  if (!voiceRepliesOn || !('speechSynthesis' in window)) return;
+  const clean = text.replace(/<[^>]*>/g, ''); // strip the agent-label HTML before speaking
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(clean);
+  u.rate = 1.03; u.pitch = 1.0;
+  window.speechSynthesis.speak(u);
+}
+
+(async function(){
+  const user = await initShell('ask-ai');
+  if (!user) return;
+
+  const chatLog = document.getElementById('chatLog');
+  const chatInput = document.getElementById('chatInput');
+  const micBtn = document.getElementById('micBtn');
+  const micStatus = document.getElementById('micStatus');
+  const speakToggle = document.getElementById('speakToggle');
+
+  async function send(text){
+    text = (text || chatInput.value).trim();
+    if (!text) return;
+    chatLog.insertAdjacentHTML('beforeend', `<div class="msg user">${text}</div>`);
+    chatInput.value = '';
+    chatLog.scrollTop = chatLog.scrollHeight;
+    const thinking = document.createElement('div');
+    thinking.className = 'msg bot';
+    thinking.textContent = '…';
+    chatLog.appendChild(thinking);
+    chatLog.scrollTop = chatLog.scrollHeight;
+    try {
+      const res = await api('/api/assistant/chat', {method:'POST', body: JSON.stringify({message: text})});
+      const label = AGENT_LABEL[res.agent] || AGENT_LABEL.general;
+      thinking.innerHTML = `<div style="font-size:11px; color:var(--text-faint); margin-bottom:4px;">${label}</div>${res.reply}`;
+      speakReply(res.reply);
+    } catch(e) {
+      thinking.textContent = 'Sorry, something went wrong reaching the assistant.';
+    }
+    chatLog.scrollTop = chatLog.scrollHeight;
+  }
+
+  document.getElementById('chatSend').addEventListener('click', () => send());
+  chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); });
+  document.querySelectorAll('.prompt-chip').forEach(btn => {
+    btn.addEventListener('click', () => send(btn.dataset.msg));
+  });
+
+  // ---------- Voice reply toggle ----------
+  speakToggle.addEventListener('click', () => {
+    voiceRepliesOn = !voiceRepliesOn;
+    speakToggle.textContent = `🔊 Voice replies: ${voiceRepliesOn ? 'on' : 'off'}`;
+    speakToggle.classList.toggle('on', voiceRepliesOn);
+    if (!voiceRepliesOn && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+  });
+
+  // ---------- Voice input (speech-to-text) ----------
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    micBtn.disabled = true;
+    micBtn.title = 'Voice input isn\'t supported in this browser — try Chrome or Edge';
+    micBtn.style.opacity = '.4';
+  } else {
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    let listening = false;
+
+    recognition.onstart = () => {
+      listening = true;
+      micBtn.classList.add('listening');
+      micStatus.textContent = '🎙️ Listening… speak your question';
+    };
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      chatInput.value = transcript;
+      micStatus.textContent = '';
+      send(transcript);
+    };
+    recognition.onerror = (event) => {
+      micStatus.textContent = event.error === 'not-allowed'
+        ? '⚠️ Microphone permission denied.'
+        : '⚠️ Didn\'t catch that — try again.';
+    };
+    recognition.onend = () => {
+      listening = false;
+      micBtn.classList.remove('listening');
+      setTimeout(() => { if (!listening) micStatus.textContent = ''; }, 1500);
+    };
+
+    micBtn.addEventListener('click', () => {
+      if (listening) { recognition.stop(); return; }
+      try { recognition.start(); } catch (e) { /* already starting */ }
+    });
+  }
+})();
+</script>
+</body>
+</html>
