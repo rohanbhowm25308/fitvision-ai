@@ -1928,3 +1928,10 @@ def api_trainer_client_summary(client_id):
 if __name__ == "__main__":
     init_db()
     app.run(debug=True, port=5000)
+else:
+    # gunicorn (and any other WSGI server) imports this file as a module
+    # instead of running it directly, so __name__ != "__main__" and the
+    # block above never runs. Initialize the database here too, so it
+    # actually exists in production (this was causing every login/signup
+    # on Render to fail with an unhandled 500 error).
+    init_db()
