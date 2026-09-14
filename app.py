@@ -1749,11 +1749,10 @@ def api_dashboard_brief():
     day_title = plan_rows[0]["day_title"] if plan_rows else None
     has_exercises = any(r["exercise"] for r in plan_rows)
 
-    first_name = (user["name"] or "there").split(" ")[0]
     if not has_exercises:
-        briefing = f"Good to see you, {first_name}! Today's a rest day — recovery is part of the plan too."
+        briefing = "Good to see you! Today's a rest day — recovery is part of the plan too."
     else:
-        briefing = f"Good to see you, {first_name}! Today's session: {day_title}. Let's get after it."
+        briefing = f"Good to see you! Today's session: {day_title}. Let's get after it."
 
     return jsonify({"briefing": briefing, "day_title": day_title, "has_exercises": has_exercises, **gam})
 
