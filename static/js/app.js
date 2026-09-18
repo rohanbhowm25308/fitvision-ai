@@ -121,3 +121,42 @@ function pillClass(exercise) {
   core.forEach(e => map[e] = 'core');
   return map[exercise] || 'chest';
 }
+
+// ---------- Ambient particle background (site-wide) ----------
+// Runs on every page that loads app.js (dashboard, workout, diet, progress,
+// achievements, ask-ai, trainer). The landing page (index.html) builds its
+// own copy inline since it doesn't load app.js, but shares the same CSS
+// classes so both look identical and both now use position:fixed, so the
+// particles stay visible while scrolling instead of only showing near the top.
+function initParticles() {
+  if (document.getElementById('particleField')) return;
+  const field = document.createElement('div');
+  field.className = 'particle-field';
+  field.id = 'particleField';
+  document.body.prepend(field);
+
+  const count = 45;
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = 1.5 + Math.random() * 3;
+    const isViolet = Math.random() > 0.55;
+    const color = isViolet ? '139,107,255' : '53,230,255';
+    const duration = 12 + Math.random() * 14;
+    const delay = -Math.random() * duration;
+    const drift = (Math.random() * 80 - 40).toFixed(0) + 'px';
+    p.style.cssText = `
+      left:${(Math.random() * 100).toFixed(1)}%;
+      bottom:-10px;
+      width:${size}px; height:${size}px;
+      background:rgba(${color},.9);
+      box-shadow:0 0 ${Math.round(size * 3)}px rgba(${color},.8);
+      animation-duration:${duration}s;
+      animation-delay:${delay}s;
+      --drift:${drift};
+      --pmax:${(0.4 + Math.random() * 0.5).toFixed(2)};
+    `;
+    field.appendChild(p);
+  }
+}
+document.addEventListener('DOMContentLoaded', initParticles);
